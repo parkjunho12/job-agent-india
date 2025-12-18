@@ -1,0 +1,119 @@
+################################
+# OS / Editor
+################################
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*.tmp
+.vscode/
+.idea/
+*.log
+
+################################
+# Python
+################################
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+.eggs/
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+venv/
+.env/
+.env.*
+!env.example
+
+################################
+# FastAPI / Backend
+################################
+backend/app/db/database.db
+backend/app/db/*.sqlite3
+backend/app/db/*.db
+
+# Uploaded files / user data
+backend/app/uploads/
+backend/app/storage/
+backend/app/tmp/
+
+################################
+# Node / Frontend
+################################
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-lock.yaml
+dist/
+build/
+
+# Vite
+frontend/.vite/
+
+################################
+# Browser Extension
+################################
+# Build outputs
+extension/dist/
+extension/build/
+
+# Chrome / Firefox local data
+extension/.cache/
+extension/.web-ext-artifacts/
+
+################################
+# Environment / Secrets
+################################
+.env
+.env.local
+.env.production
+.env.development
+.env.test
+
+################################
+# Docker
+################################
+# Docker runtime data
+docker-data/
+volumes/
+
+# Docker build cache (if any)
+*.tar
+
+################################
+# Database / Migrations
+################################
+database/*.db
+database/*.sqlite
+database/migrations/versions/*.pyc
+
+################################
+# Logs
+################################
+logs/
+*.log
+
+################################
+# Test artifacts
+################################
+tests/**/__pycache__/
+tests/**/.pytest_cache/
+
+################################
+# Reports / Outputs
+################################
+outputs/
+reports/
+results/
+
+################################
+# Coverage / Profiling
+################################
+.prof
+*.prof
