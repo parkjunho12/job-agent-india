@@ -10,7 +10,8 @@ from contextlib import asynccontextmanager
 import logging
 
 from app.api import auth, jobs, applications, generation, automation
-from app.db.database import engine, Base
+from app.db.database import engine
+from app.db.database import Base
 from app.utils.config import settings
 
 # Configure logging

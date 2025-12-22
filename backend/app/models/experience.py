@@ -2,7 +2,7 @@
 Experience model - User's work experience, education, projects
 """
 
-from sqlalchemy import Column, Integer, String, DateTime, Text, ForeignKey, JSON, Enum
+from sqlalchemy import Column, Integer, String, DateTime, Text, ForeignKey, JSON, Enum, Boolean
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from datetime import datetime

@@ -14,6 +14,8 @@ from typing import Optional
 from app.db.database import get_db
 from app.models.user import User, UserCreate, UserResponse, Token, TokenData
 from app.utils.config import settings
+import hashlib
+import bcrypt
 
 router = APIRouter()
 
@@ -26,13 +28,18 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify a password against its hash"""
-    return pwd_context.verify(plain_password, hashed_password)
+    password_bytes = plain_password.encode("utf-8")
+    prehashed = hashlib.sha256(password_bytes).digest()
+
+    return bcrypt.checkpw(prehashed, hashed_password.encode("utf-8"))
 
 
 def get_password_hash(password: str) -> str:
     """Hash a password"""
-    return pwd_context.hash(password)
-
+    password_bytes = password.encode("utf-8")
+    prehashed = hashlib.sha256(password_bytes).digest()
+    hashed = bcrypt.hashpw(prehashed, bcrypt.gensalt())
+    return hashed.decode("utf-8")
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     """Create JWT access token"""
