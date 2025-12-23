@@ -8,7 +8,7 @@ import re
 from datetime import datetime
 import logging
 
-from app.services.anthropic_service import AnthropicService
+from app.services.openai_service import AnthropicService
 from app.models.job import JobAnalysis
 
 logger = logging.getLogger(__name__)

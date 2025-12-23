@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     """
     
     # App Settings
-    APP_NAME: str = "UK Job Agent"
+    APP_NAME: str = "India Job Agent"
     DEBUG: bool = False
     API_VERSION: str = "v1"
     
@@ -32,6 +32,11 @@ class Settings(BaseSettings):
         "http://localhost:5173",
         "chrome-extension://*"
     ]
+    
+    # AI API (Primary: OpenAI for cost optimization)
+    OPENAI_API_KEY: Optional[str] = None
+    OPENAI_MODEL: str = "gpt-4o-mini"  # Cost optimized for India market
+    OPENAI_MAX_TOKENS: int = 4000
     
     # Anthropic API
     ANTHROPIC_API_KEY: Optional[str] = None
@@ -69,7 +74,8 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
-        case_sensitive=True
+        case_sensitive=True,
+        extra="ignore"
     )
 
 
