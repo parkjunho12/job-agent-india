@@ -4,10 +4,36 @@ import { useAuthStore } from '../stores/authStore'
 // Create axios instance
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1',
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  
 })
+
+function ensureContentType(config) {
+const headers = config.headers ?? {}
+  
+    // 이미 호출부에서 Content-Type을 명시했다면 존중
+if (headers['Content-Type'] || headers['content-type']) {
+    config.headers = headers
+    return config
+}
+
+const data = config.data
+
+ // URLSearchParams -> x-www-form-urlencoded
+ if (typeof URLSearchParams !== 'undefined' && data instanceof URLSearchParams) {
+    headers['Content-Type'] = 'application/x-www-form-urlencoded'
+  }
+  // FormData -> 브라우저가 boundary 포함해서 자동 지정해야 함 (설정하지 않음)
+  else if (typeof FormData !== 'undefined' && data instanceof FormData) {
+    // do nothing
+  }
+  // 객체/배열 -> JSON
+  else if (data && typeof data === 'object') {
+    headers['Content-Type'] = 'application/json'
+  }
+
+  config.headers = headers
+  return config
+}
 
 // Request interceptor - Add auth token
 api.interceptors.request.use(
@@ -15,10 +41,11 @@ api.interceptors.request.use(
     const token = useAuthStore.getState().token
     
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`
+        config.headers = config.headers ?? {}
+        config.headers.Authorization = `Bearer ${token}`
     }
     
-    return config
+    return ensureContentType(config)
   },
   (error) => {
     return Promise.reject(error)
@@ -27,31 +54,51 @@ api.interceptors.request.use(
 
 // Response interceptor - Handle errors
 api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      // Unauthorized - logout user
-      useAuthStore.getState().logout()
-      window.location.href = '/login'
+    (res) => res,
+    (error) => {
+      const url = error.config?.url || ''
+      const isAuth = url.includes('/auth/login') || url.includes('/auth/register')
+  
+      if (error.response?.status === 401 && !isAuth) {
+        useAuthStore.getState().logout()
+        window.location.href = '/login'
+      }
+      return Promise.reject(error)
     }
-    
-    return Promise.reject(error)
-  }
-)
+  )
+
+
+const toForm = (obj) =>
+  new URLSearchParams(
+    Object.entries(obj ?? {}).reduce((acc, [k, v]) => {
+      if (v !== undefined && v !== null) acc[k] = v
+      return acc
+    }, {})
+  )
+  
 
 // Auth API
 export const authApi = {
-  login: (email, password) => 
-    api.post('/auth/login', { username: email, password }),
+    login: (email, password) =>
+        api.post(
+          '/auth/login',
+          new URLSearchParams({
+            username: email,
+            password,
+            // grant_type: 'password', // 필요하면 추가
+          })
+        ),
+
+        
   
-  register: (userData) => 
-    api.post('/auth/register', userData),
+  register: (userData) =>
+    api.post('/auth/register', toForm(userData)),
   
-  getMe: () => 
-    api.get('/auth/me'),
+  getMe: (token) => 
+    api.get('/auth/me', { headers: { Authorization: `Bearer ${token}` } }),
   
-  logout: () => 
-    api.post('/auth/logout'),
+  logout: () =>
+    api.post('/auth/logout', toForm({}))
 }
 
 // Jobs API
@@ -63,35 +110,36 @@ export const jobsApi = {
     api.get(`/jobs/${id}`),
   
   create: (jobData) => 
-    api.post('/jobs', jobData),
+    api.post('/jobs', toForm(jobData)),
   
   update: (id, jobData) => 
-    api.put(`/jobs/${id}`, jobData),
+    api.put(`/jobs/${id}`, toForm(jobData)),
   
   delete: (id) => 
     api.delete(`/jobs/${id}`),
   
   reanalyze: (id) => 
-    api.post(`/jobs/${id}/reanalyze`),
+    api.post(`/jobs/${id}/reanalyze`, toForm({})),
 }
 
 // Applications API
 export const applicationsApi = {
-  list: (params) => 
-    api.get('/applications', { params }),
+    list: (params) => 
+      api.get('/applications', { params }),
+    
+    get: (id) => 
+      api.get(`/applications/${id}`),
+    
+    create: (appData) => 
+      api.post('/applications', appData),
+    
+    update: (id, appData) => 
+      api.put(`/applications/${id}`, appData),
+    
+    submit: (id) => 
+      api.post(`/applications/${id}/submit`),
+  }
   
-  get: (id) => 
-    api.get(`/applications/${id}`),
-  
-  create: (appData) => 
-    api.post('/applications', appData),
-  
-  update: (id, appData) => 
-    api.put(`/applications/${id}`, appData),
-  
-  submit: (id) => 
-    api.post(`/applications/${id}/submit`),
-}
 
 // Experiences API
 export const experiencesApi = {
@@ -113,26 +161,25 @@ export const experiencesApi = {
 
 // Generation API
 export const generationApi = {
-  generateAnswers: (jobId, questions) => 
-    api.post('/generation/answers', { job_id: jobId, questions }),
+    generateAnswers: (jobId, questions) => 
+      api.post('/generation/answers', { job_id: jobId, questions }),
+    
+    generateCoverLetter: (jobId) => 
+      api.post('/generation/cover-letter', { job_id: jobId }),
+    
+    matchExperiences: (jobId) => 
+      api.post('/generation/match-experiences', new URLSearchParams({ job_id: jobId }) ),
+  }
   
-  generateCoverLetter: (jobId) => 
-    api.post('/generation/cover-letter', { job_id: jobId }),
-  
-  matchExperiences: (jobId) => 
-    api.post('/generation/match', { job_id: jobId }),
-}
-
-// Automation API
-export const automationApi = {
-  detectPortal: (url) => 
-    api.post('/automation/detect-portal', { url }),
-  
-  extractForm: (portalType, formData) => 
-    api.post('/automation/extract-form', { portal_type: portalType, form_data: formData }),
-  
-  assessRisk: (applicationId) => 
-    api.post(`/automation/assess-risk`, { application_id: applicationId }),
-}
-
+  // Automation API
+  export const automationApi = {
+    detectPortal: (url) => 
+      api.post('/automation/detect-portal', { url }),
+    
+    extractForm: (portalType, formData) => 
+      api.post('/automation/extract-form', { portal_type: portalType, form_data: formData }),
+    
+    assessRisk: (applicationId) => 
+      api.post(`/automation/assess-risk`, { application_id: applicationId }),
+  }
 export default api

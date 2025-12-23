@@ -8,6 +8,21 @@ export const useAuthStore = create(
       user: null,
       token: null,
       isAuthenticated: false,
+
+      setToken: (token) => {
+        set({
+          token,
+          isAuthenticated: !!token,
+        })
+      },
+
+      // NEW: user만 세팅
+      setUser: (user) => {
+        set((state) => ({
+          user,
+          isAuthenticated: !!state.token,
+        }))
+      },
       
       // Actions
       login: (user, token) => {

@@ -22,7 +22,8 @@ function Login() {
       const { access_token } = response.data
       
       // Get user info
-      const userResponse = await authApi.getMe()
+      const userResponse = await authApi.getMe(access_token)
+
       
       login(userResponse.data, access_token)
       navigate('/dashboard')
