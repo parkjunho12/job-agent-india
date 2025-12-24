@@ -1,20 +1,20 @@
 {
     "manifest_version": 3,
-    "name": "UK Job Agent - Auto Application Assistant",
-    "version": "0.1.0",
-    "description": "Automatically fill UK job applications with AI-generated answers",
+    "name": "Job Agent India - Auto Application Helper",
+    "version": "1.0.0",
+    "description": "Save and analyze job postings from Naukri, LinkedIn with AI",
     
     "permissions": [
       "storage",
       "activeTab",
-      "scripting"
+      "scripting",
+      "tabs"
     ],
     
     "host_permissions": [
-      "https://*.myworkdayjobs.com/*",
-      "https://boards.greenhouse.io/*",
-      "https://jobs.lever.co/*",
-      "https://*.smartrecruiters.com/*",
+      "https://*.naukri.com/*",
+      "https://*.linkedin.com/*",
+      "http://localhost:3000/*",
       "http://localhost:8000/*"
     ],
     
@@ -24,24 +24,20 @@
     
     "content_scripts": [
       {
-        "matches": [
-          "https://*.myworkdayjobs.com/*"
-        ],
-        "js": ["content/form-analyzer.js", "content/workday-handler.js"],
+        "matches": ["http://localhost:3000/*"],
+        "js": ["content/bridge.js"],
+        "run_at": "document_end"
+      },
+      {
+        "matches": ["https://*.naukri.com/*"],
+        "js": ["utils/api-client.js", "content/naukri-handler.js"],
+        "css": ["styles/overlay.css"],
         "run_at": "document_idle"
       },
       {
-        "matches": [
-          "https://boards.greenhouse.io/*"
-        ],
-        "js": ["content/form-analyzer.js", "content/greenhouse-handler.js"],
-        "run_at": "document_idle"
-      },
-      {
-        "matches": [
-          "https://jobs.lever.co/*"
-        ],
-        "js": ["content/form-analyzer.js", "content/lever-handler.js"],
+        "matches": ["https://*.linkedin.com/jobs/*"],
+        "js": ["utils/api-client.js", "content/linkedin-handler.js"],
+        "css": ["styles/overlay.css"],
         "run_at": "document_idle"
       }
     ],
@@ -65,9 +61,8 @@
     
     "web_accessible_resources": [
       {
-        "resources": ["assets/*"],
+        "resources": ["assets/*", "styles/*"],
         "matches": ["<all_urls>"]
       }
     ]
   }
-  

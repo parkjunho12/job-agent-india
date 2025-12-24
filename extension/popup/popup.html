@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Job Agent India</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      width: 360px;
+      min-height: 500px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #f97316 0%, #22c55e 100%);
+      color: #111827;
+    }
+
+    .header {
+      background: white;
+      padding: 20px;
+      text-align: center;
+      border-bottom: 2px solid #f3f4f6;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .logo-icon {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, #f97316 0%, #22c55e 100%);
+      border-radius: 8px;
+    }
+
+    .logo-text {
+      font-size: 20px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #f97316 0%, #22c55e 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .tagline {
+      font-size: 12px;
+      color: #6b7280;
+    }
+
+    .content {
+      padding: 20px;
+      background: white;
+    }
+
+    .status {
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      text-align: center;
+      font-size: 13px;
+    }
+
+    .status-success {
+      background: #dcfce7;
+      color: #166534;
+      border: 1px solid #bbf7d0;
+    }
+
+    .status-error {
+      background: #fee2e2;
+      color: #991b1b;
+      border: 1px solid #fecaca;
+    }
+
+    .status-info {
+      background: #dbeafe;
+      color: #1e40af;
+      border: 1px solid #bfdbfe;
+    }
+
+    .stat-cards {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .stat-card {
+      background: #f9fafb;
+      padding: 16px;
+      border-radius: 10px;
+      text-align: center;
+      border: 1px solid #e5e7eb;
+    }
+
+    .stat-number {
+      font-size: 28px;
+      font-weight: 700;
+      color: #f97316;
+      margin-bottom: 4px;
+    }
+
+    .stat-label {
+      font-size: 11px;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .button {
+      width: 100%;
+      padding: 14px 20px;
+      border: none;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .button-primary {
+      background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+      color: white;
+    }
+
+    .button-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
+    }
+
+    .button-secondary {
+      background: white;
+      color: #374151;
+      border: 2px solid #e5e7eb;
+    }
+
+    .button-secondary:hover {
+      background: #f9fafb;
+    }
+
+    .quick-links {
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 2px solid #f3f4f6;
+    }
+
+    .quick-link {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px;
+      margin-bottom: 8px;
+      border-radius: 8px;
+      text-decoration: none;
+      color: #374151;
+      font-size: 13px;
+      transition: all 0.2s;
+    }
+
+    .quick-link:hover {
+      background: #f9fafb;
+    }
+
+    .quick-link-icon {
+      width: 32px;
+      height: 32px;
+      background: #f3f4f6;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+
+    .footer {
+      padding: 16px 20px;
+      background: white;
+      border-top: 2px solid #f3f4f6;
+      text-align: center;
+    }
+
+    .footer-text {
+      font-size: 11px;
+      color: #9ca3af;
+    }
+
+    .footer-link {
+      color: #f97316;
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top-color: white;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo">
+      <div class="logo-icon"></div>
+      <div class="logo-text">Job Agent</div>
+    </div>
+    <div class="tagline">Apply to 100 jobs in 1 hour</div>
+  </div>
+
+  <div class="content">
+    <div id="status" class="status status-info hidden">Loading...</div>
+
+    <div id="stats" class="stat-cards hidden">
+      <div class="stat-card">
+        <div class="stat-number" id="jobs-count">0</div>
+        <div class="stat-label">Saved Jobs</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number" id="apps-count">0</div>
+        <div class="stat-label">Applications</div>
+      </div>
+    </div>
+
+    <button id="open-dashboard" class="button button-primary">
+      🚀 Open Dashboard
+    </button>
+
+    <button id="view-jobs" class="button button-secondary">
+      💼 View Saved Jobs
+    </button>
+
+    <button id="add-experience" class="button button-secondary">
+      ✍️ Add Experience
+    </button>
+
+    <div class="quick-links">
+      <a href="#" id="link-settings" class="quick-link">
+        <div class="quick-link-icon">⚙️</div>
+        <span>Settings</span>
+      </a>
+      <a href="#" id="link-help" class="quick-link">
+        <div class="quick-link-icon">❓</div>
+        <span>Help & Support</span>
+      </a>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div class="footer-text">
+      Made with ❤️ in India • 
+      <a href="http://localhost:3000" target="_blank" class="footer-link">Visit Web App</a>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

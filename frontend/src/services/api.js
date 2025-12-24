@@ -92,7 +92,7 @@ export const authApi = {
         
   
   register: (userData) =>
-    api.post('/auth/register', toForm(userData)),
+    api.post('/auth/register', userData),
   
   getMe: (token) => 
     api.get('/auth/me', { headers: { Authorization: `Bearer ${token}` } }),

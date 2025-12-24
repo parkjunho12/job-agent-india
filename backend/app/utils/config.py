@@ -5,6 +5,7 @@ Application configuration using Pydantic settings
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import List, Optional
 from functools import lru_cache
+from pathlib import Path
 
 
 class Settings(BaseSettings):
@@ -18,7 +19,9 @@ class Settings(BaseSettings):
     API_VERSION: str = "v1"
     
     # Database
-    DATABASE_URL: str = "sqlite:///./job_agent.db"  # Default to SQLite for dev
+    
+    DATABASE_URL: str = "sqlite:////Users/mac/Documents/01_Projects/01_AI_Projects/03_Agents/job-agent-uk/database/job_agent.db"
+    # Default to SQLite for dev
     DB_ECHO: bool = False  # SQLAlchemy echo SQL queries
     
     # Security
@@ -29,7 +32,11 @@ class Settings(BaseSettings):
     # CORS
     CORS_ORIGINS: List[str] = [
         "http://localhost:3000",
+        "http://127.0.0.1:3000",
         "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "https://www.naukri.com",
+        "https://www.linkedin.com/jobs",
         "chrome-extension://*"
     ]
     

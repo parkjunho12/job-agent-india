@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import extensionBridge from '../utils/extensionBridge'
 
 export const useAuthStore = create(
   persist(
@@ -8,37 +9,32 @@ export const useAuthStore = create(
       user: null,
       token: null,
       isAuthenticated: false,
-
-      setToken: (token) => {
-        set({
-          token,
-          isAuthenticated: !!token,
-        })
-      },
-
-      // NEW: user만 세팅
-      setUser: (user) => {
-        set((state) => ({
-          user,
-          isAuthenticated: !!state.token,
-        }))
-      },
       
       // Actions
-      login: (user, token) => {
+      login: async (user, token) => {
+        // Update Zustand state (saves to localStorage)
         set({
           user,
           token,
           isAuthenticated: true,
         })
+        
+        // Sync to Extension
+        console.log('🔄 Syncing token to extension...')
+        await extensionBridge.saveToken(token)
       },
       
-      logout: () => {
+      logout: async () => {
+        // Clear Zustand state
         set({
           user: null,
           token: null,
           isAuthenticated: false,
         })
+        
+        // Clear from Extension
+        console.log('🔄 Clearing token from extension...')
+        await extensionBridge.clearToken()
       },
       
       updateUser: (userData) => {
@@ -49,7 +45,6 @@ export const useAuthStore = create(
       
       // Helpers
       getToken: () => get().token,
-      
       getUser: () => get().user,
       
       isFreeTier: () => {
@@ -63,7 +58,7 @@ export const useAuthStore = create(
       },
     }),
     {
-      name: 'auth-storage',
+      name: 'auth-storage', // localStorage key
       partialize: (state) => ({
         user: state.user,
         token: state.token,
