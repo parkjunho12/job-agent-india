@@ -6,7 +6,7 @@ Uses Claude API and matches with user's experience
 from typing import List, Dict, Optional, Any
 import logging
 
-from app.services.anthropic_service import AnthropicService
+from app.services.openai_service import AnthropicService
 from app.models.experience import Experience, ExperienceMatch
 
 logger = logging.getLogger(__name__)

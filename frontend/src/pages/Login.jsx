@@ -22,9 +22,10 @@ function Login() {
       const { access_token } = response.data
       
       // Get user info
-      const userResponse = await authApi.getMe()
+      const userResponse = await authApi.getMe(access_token)
+
       
-      login(userResponse.data, access_token)
+      useAuthStore.getState().login(userResponse.data, access_token)
       navigate('/dashboard')
     } catch (err) {
       setError(err.response?.data?.detail || 'Login failed. Please try again.')

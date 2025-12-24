@@ -5,6 +5,7 @@ Application configuration using Pydantic settings
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import List, Optional
 from functools import lru_cache
+from pathlib import Path
 
 
 class Settings(BaseSettings):
@@ -13,12 +14,14 @@ class Settings(BaseSettings):
     """
     
     # App Settings
-    APP_NAME: str = "UK Job Agent"
+    APP_NAME: str = "India Job Agent"
     DEBUG: bool = False
     API_VERSION: str = "v1"
     
     # Database
-    DATABASE_URL: str = "sqlite:///./job_agent.db"  # Default to SQLite for dev
+    
+    DATABASE_URL: str = "sqlite:////Users/mac/Documents/01_Projects/01_AI_Projects/03_Agents/job-agent-uk/database/job_agent.db"
+    # Default to SQLite for dev
     DB_ECHO: bool = False  # SQLAlchemy echo SQL queries
     
     # Security
@@ -29,9 +32,18 @@ class Settings(BaseSettings):
     # CORS
     CORS_ORIGINS: List[str] = [
         "http://localhost:3000",
+        "http://127.0.0.1:3000",
         "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "https://www.naukri.com",
+        "https://www.linkedin.com/jobs",
         "chrome-extension://*"
     ]
+    
+    # AI API (Primary: OpenAI for cost optimization)
+    OPENAI_API_KEY: Optional[str] = None
+    OPENAI_MODEL: str = "gpt-4o-mini"  # Cost optimized for India market
+    OPENAI_MAX_TOKENS: int = 4000
     
     # Anthropic API
     ANTHROPIC_API_KEY: Optional[str] = None
@@ -69,7 +81,8 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
-        case_sensitive=True
+        case_sensitive=True,
+        extra="ignore"
     )
 
 
