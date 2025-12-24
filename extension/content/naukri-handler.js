@@ -1,5 +1,5 @@
-// Naukri.com Job Handler
-console.log('🚀 Job Agent: Naukri handler loaded')
+// Naukri.com Handler v3.0 - Based on Real HTML Structure
+console.log('🚀 Job Agent: Naukri handler v3.0 loaded')
 
 class NaukriHandler {
   constructor() {
@@ -10,149 +10,185 @@ class NaukriHandler {
   }
 
   async init() {
-    // Wait for API client to be ready
     if (!window.apiClient) {
       setTimeout(() => this.init(), 100)
       return
     }
 
-    // Check authentication
     this.isAuthenticated = await window.apiClient.isAuthenticated()
-    console.log('Authentication status:', this.isAuthenticated)
+    console.log('✅ Auth status:', this.isAuthenticated)
 
-    // Detect job page and show overlay
     if (this.isJobDetailPage()) {
-        console.log('Naukri job detail page detected.')
-      setTimeout(() => this.extractJobDetails(), 1000)
-    }
-    else {
-      console.log('Not a Naukri job detail page.')
+      // Wait for page to fully load
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+          setTimeout(() => this.extractJobDetails(), 2000)
+        })
+      } else {
+        setTimeout(() => this.extractJobDetails(), 2000)
+      }
     }
   }
 
   isJobDetailPage() {
-    // Naukri job detail URLs contain /job-listings/
-    return window.location.href.includes('/job-listings/') || 
-           window.location.href.includes('/jobDetail/') ||
-           window.location.href.includes('/job-listings')
+    return window.location.pathname.includes('/job-listings-')
   }
 
   extractJobDetails() {
-    console.log('Extracting job details from Naukri...')
+    console.log('📊 Extracting job from Naukri...')
 
     try {
-      // Try multiple selectors for job title
-      const title = this.getText([
-        '.jd-header-title',
-        '.title',
-        'h1.job-title',
-        '[class*="title"]'
-      ])
-
-      // Company name
-      const company = this.getText([
-        '.jd-header-comp-name',
-        '.company-name',
-        '[class*="company"]'
-      ])
-
-      // Location
-      const location = this.getText([
-        '.location',
-        '.loc',
-        '[class*="location"]'
-      ])
-
-      // Experience
-      const experience = this.getText([
-        '.exp',
-        '[class*="experience"]'
-      ])
-
-      // Salary
-      const salary = this.getText([
-        '.salary',
-        '[class*="salary"]'
-      ])
-
-      // Description
-      const description = this.getText([
-        '.dang-inner-html',
-        '.job-desc',
-        '[class*="description"]'
-      ], true)
-
-      // Skills
-      const skills = this.extractSkills()
-
-      this.currentJob = {
-        title: title || 'Job Title',
-        company: company || 'Company',
-        location: location || '',
-        description: description || '',
-        url: window.location.href,
-        portal_type: 'naukri',
-        required_experience: experience || '',
-        salary_range: salary || '',
-        required_skills: skills
+      // Extract from actual DOM structure
+      const jobData = this.extractFromRealDOM()
+      
+      if (jobData && jobData.title) {
+        this.currentJob = jobData
+        console.log('✅ Job extracted:', this.currentJob)
+        this.showOverlay()
+      } else {
+        console.warn('❌ Could not extract job details')
       }
-
-      console.log('Extracted job:', this.currentJob)
-      this.showOverlay()
+      
     } catch (error) {
-      console.error('Error extracting job details:', error)
+      console.error('❌ Error:', error)
     }
   }
 
-  getText(selectors, fullText = false) {
-    for (const selector of selectors) {
+  extractFromRealDOM() {
+    // 실제 HTML 구조 기반 추출
+    console.log('🔍 Extracting from real DOM structure...')
+    
+    // Title: <h1 class="styles_jd-header-title__rZwM1">
+    const title = this.getTextBySelector('.styles_jd-header-title__rZwM1')
+    
+    // Company: <div class="styles_jd-header-comp-name__MvqAI"><a>
+    const company = this.getTextBySelector('.styles_jd-header-comp-name__MvqAI a')
+    
+    // Location: <span class="styles_jhc__location__W_pVs"><a>
+    const location = this.getTextBySelector('.styles_jhc__location__W_pVs a') || 
+                     this.getTextBySelector('.styles_jhc__loc___Du2H')
+    
+    // Experience: <div class="styles_jhc__exp__k_giM">
+    const experience = this.getTextBySelector('.styles_jhc__exp__k_giM')
+    
+    // Salary: <div class="styles_jhc__salary__jdfEC">
+    const salary = this.getTextBySelector('.styles_jhc__salary__jdfEC')
+    
+    // Description: <div class="styles_JDC__dang-inner-html__h0K4t">
+    const description = this.getTextBySelector('.styles_JDC__dang-inner-html__h0K4t', true)
+    
+    // Skills: <div class="styles_key-skill__GIPn_"> 내의 <a> 태그들
+    const skills = this.extractSkillsFromKeySkillSection()
+    
+    // Job ID from URL
+    const jobId = this.extractJobIdFromURL()
+
+    if (!title) {
+      console.warn('Title not found, trying fallback')
+      return this.extractFromURL()
+    }
+
+    return {
+      title: title,
+      company: company || 'Company',
+      location: location || 'India',
+      description: description || 'Job description not available',
+      url: window.location.href,
+      portal_type: 'naukri',
+      required_experience: experience || '',
+      salary_range: salary || '',
+      required_skills: skills,
+      job_id: jobId
+    }
+  }
+
+  getTextBySelector(selector, fullText = false) {
+    try {
       const element = document.querySelector(selector)
-      if (element) {
-        return fullText ? element.textContent.trim() : element.textContent.trim().split('\n')[0]
-      }
+      if (!element) return ''
+      
+      const text = element.textContent.trim()
+      
+      if (fullText) return text
+      
+      // Remove icons and extra whitespace
+      return text
+        .replace(/\s+/g, ' ')
+        .split('\n')[0]
+        .trim()
+    } catch (e) {
+      return ''
     }
-    return ''
   }
 
-  extractSkills() {
+  extractSkillsFromKeySkillSection() {
     const skills = []
     
-    // Try to find skill tags
-    const skillElements = document.querySelectorAll('.tag, .skill-tag, [class*="skill"]')
-    skillElements.forEach(el => {
-      const skill = el.textContent.trim()
-      if (skill && skill.length < 30) {
-        skills.push(skill)
-      }
-    })
-
-    // If no skills found, try to extract from description
-    if (skills.length === 0) {
-      const description = this.getText(['.dang-inner-html', '.job-desc'], true)
-      const commonSkills = ['Python', 'Java', 'JavaScript', 'React', 'Node.js', 'SQL', 'AWS', 'Docker', 'Kubernetes']
-      commonSkills.forEach(skill => {
-        if (description.includes(skill)) {
-          skills.push(skill)
+    // <div class="styles_key-skill__GIPn_"> 안의 모든 <a> 태그
+    const keySkillSection = document.querySelector('.styles_key-skill__GIPn_')
+    
+    if (keySkillSection) {
+      const skillLinks = keySkillSection.querySelectorAll('a.styles_chip__7YCfG')
+      skillLinks.forEach(link => {
+        const skillText = link.textContent.trim()
+        if (skillText && skillText.length > 0) {
+          skills.push(skillText)
         }
       })
     }
-
+    
     return skills
   }
 
-  showOverlay() {
-    // Remove existing overlay
-    if (this.overlay) {
-      this.overlay.remove()
-    }
+  extractJobIdFromURL() {
+    // URL: /job-listings-data-science-intern-...-221225907070
+    const match = window.location.pathname.match(/-(\d+)$/)
+    return match ? match[1] : ''
+  }
 
-    // Create overlay
+  extractFromURL() {
+    // Fallback: URL 파싱
+    const path = window.location.pathname
+    const match = path.match(/job-listings-(.+?)-(\d+)/)
+    
+    if (!match) return null
+
+    const slug = match[1]
+    const jobId = match[2]
+    const parts = slug.split('-')
+    
+    return {
+      title: this.cleanTitle(parts.slice(0, -3).join(' ')),
+      company: this.cleanText(parts.slice(-3, -2)[0] || 'Company'),
+      location: this.cleanText(parts.slice(-2, -1)[0] || 'India'),
+      description: `Naukri Job ID: ${jobId}\n\n${window.location.href}`,
+      url: window.location.href,
+      portal_type: 'naukri',
+      job_id: jobId
+    }
+  }
+
+  cleanTitle(text) {
+    return text
+      .replace(/-/g, ' ')
+      .replace(/\b\w/g, l => l.toUpperCase())
+      .trim()
+  }
+
+  cleanText(text) {
+    return text
+      .replace(/-/g, ' ')
+      .replace(/\b\w/g, l => l.toUpperCase())
+  }
+
+  showOverlay() {
+    if (this.overlay) this.overlay.remove()
+
     this.overlay = document.createElement('div')
     this.overlay.className = 'job-agent-overlay'
     this.overlay.innerHTML = this.getOverlayHTML()
     document.body.appendChild(this.overlay)
 
-    // Add event listeners
     this.attachEventListeners()
   }
 
@@ -164,22 +200,15 @@ class NaukriHandler {
             <div class="job-agent-logo-icon"></div>
             <div class="job-agent-logo-text">Job Agent</div>
           </div>
-          <button class="job-agent-close" id="job-agent-close">×</button>
+          <button class="job-agent-close" id="ja-close">×</button>
         </div>
-        
         <div class="job-agent-content">
           <div class="job-agent-status job-agent-status-info">
-            Please login to save this job
+            Login to save this job
           </div>
-          
-          <button class="job-agent-button job-agent-button-primary" id="job-agent-login">
+          <button class="job-agent-button job-agent-button-primary" id="ja-login">
             Login to Job Agent
           </button>
-          
-          <p style="text-align: center; font-size: 12px; color: #9ca3af; margin-top: 12px;">
-            Don't have an account? 
-            <a href="http://localhost:3000/register" target="_blank" class="job-agent-link">Register</a>
-          </p>
         </div>
       `
     }
@@ -190,9 +219,8 @@ class NaukriHandler {
           <div class="job-agent-logo-icon"></div>
           <div class="job-agent-logo-text">Job Agent</div>
         </div>
-        <button class="job-agent-close" id="job-agent-close">×</button>
+        <button class="job-agent-close" id="ja-close">×</button>
       </div>
-      
       <div class="job-agent-content">
         <div class="job-agent-job-info">
           <div class="job-agent-job-title">${this.currentJob.title}</div>
@@ -201,15 +229,19 @@ class NaukriHandler {
             ${this.currentJob.location ? `<span>📍 ${this.currentJob.location}</span>` : ''}
             ${this.currentJob.required_experience ? `<span>💼 ${this.currentJob.required_experience}</span>` : ''}
           </div>
+          ${this.currentJob.required_skills && this.currentJob.required_skills.length > 0 ? `
+            <div class="job-agent-skills">
+              ${this.currentJob.required_skills.slice(0, 5).map(skill => 
+                `<span class="job-agent-skill-badge">${skill}</span>`
+              ).join('')}
+            </div>
+          ` : ''}
         </div>
-        
-        <div id="job-agent-status"></div>
-        
-        <button class="job-agent-button job-agent-button-primary" id="job-agent-save">
+        <div id="ja-status"></div>
+        <button class="job-agent-button job-agent-button-primary" id="ja-save">
           💾 Save & Analyze Job
         </button>
-        
-        <button class="job-agent-button job-agent-button-secondary" id="job-agent-view">
+        <button class="job-agent-button job-agent-button-secondary" id="ja-view">
           👁️ View Dashboard
         </button>
       </div>
@@ -217,79 +249,44 @@ class NaukriHandler {
   }
 
   attachEventListeners() {
-    // Close button
-    const closeBtn = document.getElementById('job-agent-close')
-    if (closeBtn) {
-      closeBtn.addEventListener('click', () => this.overlay.remove())
-    }
+    const close = document.getElementById('ja-close')
+    const login = document.getElementById('ja-login')
+    const save = document.getElementById('ja-save')
+    const view = document.getElementById('ja-view')
 
-    // Login button
-    const loginBtn = document.getElementById('job-agent-login')
-    if (loginBtn) {
-      loginBtn.addEventListener('click', () => {
-        window.open('http://localhost:3000/login', '_blank')
-      })
-    }
-
-    // Save button
-    const saveBtn = document.getElementById('job-agent-save')
-    if (saveBtn) {
-      saveBtn.addEventListener('click', () => this.saveJob())
-    }
-
-    // View dashboard button
-    const viewBtn = document.getElementById('job-agent-view')
-    if (viewBtn) {
-      viewBtn.addEventListener('click', () => {
-        window.open('http://localhost:3000/jobs', '_blank')
-      })
-    }
+    if (close) close.onclick = () => this.overlay.remove()
+    if (login) login.onclick = () => window.open('http://localhost:3000/login', '_blank')
+    if (save) save.onclick = () => this.saveJob()
+    if (view) view.onclick = () => window.open('http://localhost:3000/jobs', '_blank')
   }
 
   async saveJob() {
-    const saveBtn = document.getElementById('job-agent-save')
-    const statusDiv = document.getElementById('job-agent-status')
+    const btn = document.getElementById('ja-save')
+    const status = document.getElementById('ja-status')
 
     try {
-      // Disable button
-      saveBtn.disabled = true
-      saveBtn.innerHTML = '<span class="job-agent-spinner"></span> Saving...'
+      btn.disabled = true
+      btn.innerHTML = '<span class="job-agent-spinner"></span> Saving...'
 
-      // Save job via API
       const result = await window.apiClient.saveJob(this.currentJob)
-      console.log('Job saved:', result)
+      
+      status.className = 'job-agent-status job-agent-status-success'
+      status.textContent = '✓ Saved successfully!'
 
-      // Show success message
-      statusDiv.className = 'job-agent-status job-agent-status-success'
-      statusDiv.textContent = '✓ Job saved successfully!'
+      btn.disabled = false
+      btn.innerHTML = '✓ View in Dashboard'
+      btn.onclick = () => window.open(`http://localhost:3000/jobs/${result.id}`, '_blank')
 
-      // Re-enable button with new text
-      saveBtn.disabled = false
-      saveBtn.innerHTML = '✓ Saved! View Dashboard'
-      saveBtn.onclick = () => {
-        window.open(`http://localhost:3000/jobs/${result.id}`, '_blank')
-      }
-
-      // Auto-close after 3 seconds
-      setTimeout(() => {
-        if (this.overlay) {
-          this.overlay.remove()
-        }
-      }, 3000)
+      setTimeout(() => this.overlay.remove(), 3000)
 
     } catch (error) {
-      console.error('Error saving job:', error)
+      status.className = 'job-agent-status job-agent-status-error'
+      status.textContent = '✗ ' + error.message
 
-      // Show error message
-      statusDiv.className = 'job-agent-status job-agent-status-error'
-      statusDiv.textContent = '✗ ' + error.message
-
-      // Re-enable button
-      saveBtn.disabled = false
-      saveBtn.innerHTML = '💾 Try Again'
+      btn.disabled = false
+      btn.innerHTML = '💾 Try Again'
     }
   }
 }
 
-// Initialize handler
 new NaukriHandler()
