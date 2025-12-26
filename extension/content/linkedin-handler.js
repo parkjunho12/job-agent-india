@@ -61,7 +61,7 @@ class LinkedInJobHandler {
   
     isJobPage() {
       const path = window.location.pathname;
-      return path.includes('/jobs/view/') || path.includes('/jobs/collections/');
+      return path.includes('/jobs/view/') || path.includes('/jobs/collections/') || path.includes('/jobs/search-results/');
     }
   
     observeUrlChanges() {
@@ -206,20 +206,24 @@ class LinkedInJobHandler {
         const descElement = document.querySelector('.jobs-description__content .jobs-box__html-content');
         if (descElement) {
           // Get text content and clean it up
-          let description = descElement.textContent;
+            let description = descElement.textContent || "";
           
           // Remove "About the job" header
-          description = description.replace(/^About the job\s*/i, '');
+             description = description.replace(/^\s*About the job\s*\n?/i, '');
           
           // Clean up extra whitespace
-          description = description.replace(/\s+/g, ' ').trim();
-          
-          // Limit to 3000 characters
-          if (description.length > 3000) {
-            description = description.substring(0, 3000) + '...';
-          }
-          
-          return description;
+          // 줄 단위 처리
+            description = description
+            .split('\n')
+            .map(line => line.trim())
+            // 연속된 빈 줄 정리 (최대 1줄 유지)
+            .filter((line, idx, arr) => {
+            if (line !== '') return true;
+            return idx > 0 && arr[idx - 1] !== '';
+            })
+            .join('\n');
+
+            return description.trim();
         }
       } catch (error) {
         console.error('⚠️ Description extraction error:', error);
@@ -266,9 +270,14 @@ class LinkedInJobHandler {
       
       return benefits;
     }
+
   
     extractSkills(description) {
       const skills = [];
+
+      function escapeRegExp(str) {
+        return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      }
       
       if (!description) return skills;
       
@@ -286,7 +295,9 @@ class LinkedInJobHandler {
       
       skillKeywords.forEach(skill => {
         // Use word boundaries to avoid partial matches
-        const regex = new RegExp(`\\b${skill}\\b`, 'i');
+        const escapedSkill = escapeRegExp(skill.toLowerCase());
+        const regex = new RegExp(`(^|[^a-z0-9])(${escapedSkill})($|[^a-z0-9])`, 'i');
+        
         if (regex.test(lowerDesc)) {
           // Capitalize first letter
           const capitalizedSkill = skill.charAt(0).toUpperCase() + skill.slice(1);
@@ -296,6 +307,8 @@ class LinkedInJobHandler {
       
       return skills;
     }
+
+   
   
     extractJobIdFromURL() {
       try {
@@ -330,88 +343,91 @@ class LinkedInJobHandler {
       
       return null;
     }
-  
+
+
     showOverlay() {
-      if (this.overlayElement) {
-        this.removeOverlay();
-      }
-  
-      const overlay = document.createElement('div');
-      overlay.id = 'job-agent-overlay';
-      overlay.className = 'job-agent-overlay';
-      
-      overlay.innerHTML = `
+        if (this.overlay) this.overlay.remove()
+
+        this.overlay = document.createElement('div')
+        this.overlay.className = 'job-agent-overlay'
+        this.overlay.innerHTML = this.getOverlayHTML()
+        document.body.appendChild(this.overlay)
+
+        this.attachEventListeners()
+    }
+
+    getOverlayHTML() {
+        if (!this.isAuthenticated) {
+        return `
+            <div class="job-agent-header">
+            <div class="job-agent-logo">
+                <div class="job-agent-logo-icon"></div>
+                <div class="job-agent-logo-text">Job Agent</div>
+            </div>
+            <button class="job-agent-close" id="ja-close">×</button>
+            </div>
+            <div class="job-agent-content">
+            <div class="job-agent-status job-agent-status-info">
+                Login to save this job
+            </div>
+            <button class="job-agent-button job-agent-button-primary" id="ja-login">
+                Login to Job Agent
+            </button>
+            </div>
+        `
+        }
+
+        return `
         <div class="job-agent-header">
-          <h3>🤖 Job Agent</h3>
-          <button class="job-agent-close" onclick="document.getElementById('job-agent-overlay').remove()">×</button>
+            <div class="job-agent-logo">
+            <div class="job-agent-logo-icon"></div>
+            <div class="job-agent-logo-text">Job Agent</div>
+            </div>
+            <button class="job-agent-close" id="ja-close">×</button>
         </div>
         <div class="job-agent-content">
-          <h4>${this.jobData.title}</h4>
-          <p class="job-agent-company">${this.jobData.company}</p>
-          <p class="job-agent-meta">
-            <span>📍 ${this.jobData.location}</span>
-            ${this.jobData.job_type ? `<span>💼 ${this.jobData.job_type}</span>` : ''}
-          </p>
-          ${this.jobData.required_skills && this.jobData.required_skills.length > 0 ? `
-            <div class="job-agent-skills">
-              ${this.jobData.required_skills.slice(0, 5).map(skill => 
-                `<span class="job-agent-skill-badge">${skill}</span>`
-              ).join('')}
+            <div class="job-agent-job-info">
+            <div class="job-agent-job-title">${this.jobData.title}</div>
+            <div class="job-agent-job-company">${this.jobData.company}</div>
+            <div class="job-agent-job-meta">
+                ${this.jobData.location ? `<span>📍 ${this.jobData.location}</span>` : ''}
+                ${this.jobData.required_experience ? `<span>💼 ${this.jobData.required_experience}</span>` : ''}
             </div>
-          ` : ''}
-          ${this.isAuthenticated ? `
-            <button class="job-agent-button job-agent-save-button" id="job-agent-save">
-              💾 Save & Analyze Job
+            ${this.jobData.required_skills && this.jobData.required_skills.length > 0 ? `
+                <div class="job-agent-skills">
+                ${this.jobData.required_skills.slice(0, 5).map(skill => 
+                    `<span class="job-agent-skill-badge">${skill}</span>`
+                ).join('')}
+                </div>
+            ` : ''}
+            </div>
+            <div id="ja-status"></div>
+            <button class="job-agent-button job-agent-button-primary" id="ja-save">
+            💾 Save & Analyze Job
             </button>
-            <button class="job-agent-button job-agent-dashboard-button">
-              👁️ View Dashboard
+            <button class="job-agent-button job-agent-button-secondary" id="ja-view">
+            👁️ View Dashboard
             </button>
-          ` : `
-            <p class="job-agent-auth-message">
-              🔒 Please login to save jobs
-            </p>
-            <button class="job-agent-button job-agent-login-button">
-              🔑 Go to Login
-            </button>
-          `}
         </div>
-      `;
-  
-      document.body.appendChild(overlay);
-      this.overlayElement = overlay;
-  
-      // Add event listeners
-      this.attachEventListeners();
+        `
     }
-  
+
     attachEventListeners() {
-      if (!this.overlayElement) return;
-  
-      // Save button
-      const saveButton = this.overlayElement.querySelector('#job-agent-save');
-      if (saveButton) {
-        saveButton.addEventListener('click', () => this.saveJob());
-      }
-  
-      // Dashboard button
-      const dashboardButton = this.overlayElement.querySelector('.job-agent-dashboard-button');
-      if (dashboardButton) {
-        dashboardButton.addEventListener('click', () => {
-          window.open('http://localhost:3000/dashboard', '_blank');
-        });
-      }
-  
-      // Login button
-      const loginButton = this.overlayElement.querySelector('.job-agent-login-button');
-      if (loginButton) {
-        loginButton.addEventListener('click', () => {
-          window.open('http://localhost:3000/login', '_blank');
-        });
-      }
+        const close = document.getElementById('ja-close')
+        const login = document.getElementById('ja-login')
+        const save = document.getElementById('ja-save')
+        const view = document.getElementById('ja-view')
+
+        if (close) close.onclick = () => this.overlay.remove()
+        if (login) login.onclick = () => window.open('http://localhost:3000/login', '_blank')
+        if (save) save.onclick = () => this.saveJob()
+        if (view) view.onclick = () => window.open('http://localhost:3000/jobs', '_blank')
     }
-  
+
+
     async saveJob() {
-      const saveButton = this.overlayElement.querySelector('#job-agent-save');
+      const saveButton = document.getElementById('ja-save');
+      const status = document.getElementById('ja-status')
       if (!saveButton) return;
   
       saveButton.disabled = true;
@@ -425,7 +441,7 @@ class LinkedInJobHandler {
           throw new Error('No authentication token found');
         }
   
-        const response = await fetch('http://localhost:8000/api/jobs', {
+        const response = await fetch('http://localhost:8000/api/v1/jobs', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -440,13 +456,14 @@ class LinkedInJobHandler {
   
         const data = await response.json();
         console.log('✅ Job saved:', data);
-  
+        
         saveButton.textContent = '✅ Saved!';
         saveButton.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
         
         setTimeout(() => {
           saveButton.disabled = false;
-          saveButton.textContent = '💾 Save & Analyze Job';
+          saveButton.onclick = () => window.open(`http://localhost:3000/jobs/${data.id}`, '_blank')
+          saveButton.textContent = '✓ View in Dashboard';
           saveButton.style.background = '';
         }, 2000);
         
