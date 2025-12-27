@@ -26,6 +26,10 @@ aiofiles==24.1.0
 httpx==0.28.1
 python-dateutil==2.9.0.post0
 
+# CV Parsing
+PyPDF2==3.0.1
+python-docx==1.1.2
+
 # Testing
 pytest==8.3.4
 pytest-asyncio==0.24.0

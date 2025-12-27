@@ -83,6 +83,55 @@ Focus on technical keywords and skills that ATS systems look for."""
         except Exception as e:
             logger.error(f"Unexpected error calling GPT API: {e}")
             raise
+        
+    async def chat_completion(
+        self,
+        messages: List[Dict[str, str]],
+        temperature: float = 0.7,
+        max_tokens: Optional[int] = None,
+        json_mode: bool = False
+    ) -> str:
+        """
+        Generic chat completion method
+        
+        Args:
+            messages: List of message dicts with 'role' and 'content'
+            temperature: Temperature for generation (0-1)
+            max_tokens: Max tokens to generate (defaults to self.max_tokens)
+            json_mode: Force JSON output
+            
+        Returns:
+            Response text
+        """
+        
+        try:
+            kwargs = {
+                "model": self.model,
+                "max_tokens": max_tokens or self.max_tokens,
+                "temperature": temperature,
+                "messages": messages
+            }
+            
+            if json_mode:
+                kwargs["response_format"] = {"type": "json_object"}
+            
+            response = await self.client.chat.completions.create(**kwargs)
+            
+            return response.choices[0].message.content
+            
+        except RateLimitError as e:
+            logger.error(f"OpenAI rate limit exceeded: {e}")
+            raise
+        
+        except OpenAIError as e:
+            logger.error(f"OpenAI API error: {e}")
+            raise
+        
+        except Exception as e:
+            logger.error(f"Unexpected error in chat completion: {e}")
+            raise        
+
+
     
     async def generate_answer(self, prompt: str) -> Dict[str, Any]:
         """

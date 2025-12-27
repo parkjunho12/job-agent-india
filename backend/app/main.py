@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 import logging
 
-from app.api import auth, jobs, applications, generation, automation
+from app.api import auth, jobs, applications, generation, automation, cv, experiences
 from app.db.database import engine
 from app.db.database import Base
 from app.utils.config import settings
@@ -113,6 +113,17 @@ app.include_router(
     prefix="/api/v1/automation",
     tags=["Automation"]
 )
+
+app.include_router(
+    experiences.router,
+    tags=["Experiences"]
+)
+
+app.include_router(
+    cv.router,
+    tags=["CV Upload"]
+)
+
 
 
 # Global exception handler
