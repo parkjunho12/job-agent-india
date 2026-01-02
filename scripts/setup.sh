@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# UK Job Agent - Setup Script
+# India Job Agent - Setup Script
 # This script sets up the development environment
 
 set -e
 
-echo "🚀 UK Job Agent - Initial Setup"
+echo "🚀 India Job Agent - Initial Setup"
 echo "================================"
 echo ""
 
