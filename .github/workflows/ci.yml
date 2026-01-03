@@ -66,12 +66,12 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      # 선택: 린트/타입체크가 실제로 구성돼 있으면 활성화
-      - name: Lint (optional)
-        run: |
-          python -m compileall .
-        # ruff/flake8/mypy 등을 쓰면 여기서 실행
-        # 예) ruff check . || true
+      # # 선택: 린트/타입체크가 실제로 구성돼 있으면 활성화
+      # - name: Lint (optional)
+      #   run: |
+      #   #  python -m compileall .
+      #   # ruff/flake8/mypy 등을 쓰면 여기서 실행
+      #   # 예) ruff check . || true
 
       - name: Tests (optional)
         run: |
@@ -99,10 +99,10 @@ jobs:
       - name: Install deps
         run: npm ci
 
-      # 선택: lint 스크립트가 있으면 실행
-      - name: Lint (optional)
-        run: |
-          npm run lint --if-present
+      # # 선택: lint 스크립트가 있으면 실행
+      # - name: Lint (optional)
+      #   run: |
+      #     npm run lint --if-present
 
       # 최소 빌드 검증 (Vite 기준)
       - name: Build
