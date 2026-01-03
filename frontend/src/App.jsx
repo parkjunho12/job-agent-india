@@ -1,7 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useAuthStore } from './stores/authStore'
-import './utils/extensionBridge'
 
 // Pages
 import Landing from './pages/Landing'
@@ -11,6 +10,7 @@ import Dashboard from './pages/Dashboard'
 import Jobs from './pages/Jobs'
 import JobDetail from './pages/JobDetail'
 import Applications from './pages/Applications'
+import ApplicationDetail from './pages/ApplicationDetail'
 import Experiences from './pages/Experiences'
 import Settings from './pages/Settings'
 
@@ -50,6 +50,7 @@ function App() {
             <Route path="/jobs" element={<Jobs />} />
             <Route path="/jobs/:id" element={<JobDetail />} />
             <Route path="/applications" element={<Applications />} />
+            <Route path="/applications/:id" element={<ApplicationDetail />} />
             <Route path="/experiences" element={<Experiences />} />
             <Route path="/settings" element={<Settings />} />
           </Route>

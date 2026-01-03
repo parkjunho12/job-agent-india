@@ -96,6 +96,14 @@ export const authApi = {
   
   getMe: (token) => 
     api.get('/auth/me', { headers: { Authorization: `Bearer ${token}` } }),
+
+  updateProfile: (data) => api.put('/auth/me', data),
+  
+  changePassword: (currentPassword, newPassword) =>
+    api.post('/auth/change-password', { 
+      current_password: currentPassword,
+      new_password: newPassword
+    }),
   
   logout: () =>
     api.post('/auth/logout', toForm({}))
@@ -124,21 +132,24 @@ export const jobsApi = {
 
 // Applications API
 export const applicationsApi = {
-    list: (params) => 
-      api.get('/applications', { params }),
-    
-    get: (id) => 
-      api.get(`/applications/${id}`),
-    
-    create: (appData) => 
-      api.post('/applications', appData),
-    
-    update: (id, appData) => 
-      api.put(`/applications/${id}`, appData),
-    
-    submit: (id) => 
-      api.post(`/applications/${id}/submit`),
-  }
+  list: (params) => 
+    api.get('/applications', { params }),
+  
+  get: (id) => 
+    api.get(`/applications/${id}`),
+  
+  create: (appData) => 
+    api.post('/applications', appData),
+  
+  update: (id, appData) => 
+    api.put(`/applications/${id}`, appData),
+  
+  delete: (id) =>
+    api.delete(`/applications/${id}`),
+  
+  submit: (id) => 
+    api.post(`/applications/${id}/submit`),
+}
   
 
 // Experiences API
