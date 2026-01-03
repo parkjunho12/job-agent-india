@@ -64,7 +64,7 @@ services:
     networks:
       - job-agent-network
     restart: always
-    volumes:
+    # volumes:
       # Optional: Mount SSL certificates
       # - ./ssl/cert.pem:/etc/nginx/ssl/cert.pem:ro
       # - ./ssl/key.pem:/etc/nginx/ssl/key.pem:ro
