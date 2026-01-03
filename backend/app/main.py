@@ -149,7 +149,6 @@ async def general_exception_handler(request, exc):
         }
     )
 
-
 if __name__ == "__main__":
     import uvicorn
     
