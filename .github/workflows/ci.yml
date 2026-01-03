@@ -147,52 +147,6 @@ jobs:
           git config user.name  "parkjunho12"
           git config user.email "ghdlwnsgh25@gmail.com"
 
-      - name: Resolve current version
-        id: ver
-        run: |
-          # 1) VERSION 파일이 있으면 거기서, 없으면 최신 태그에서 유추
-          if [ -f VERSION ]; then
-            CURRENT=$(cat VERSION | tr -d ' \n')
-          else
-            LAST_TAG=$(git tag --list 'v*' | sort -V | tail -n1 || true)
-            CURRENT=${LAST_TAG#v}
-            if [ -z "$CURRENT" ]; then CURRENT="0.0.0"; fi
-          fi
-          echo "current=$CURRENT" >> $GITHUB_OUTPUT
-
-          # 2) bump 레벨 결정: 기본 patch, 커밋 메시지에 #major/#minor/#patch
-          MSG="$(git log -1 --pretty=%B)"
-          BUMP="patch"
-          echo "$MSG" | grep -qi '#major' && BUMP="major"
-          echo "$MSG" | grep -qi '#minor' && BUMP="minor"
-          echo "$MSG" | grep -qi '#patch' && BUMP="patch"
-          echo "bump=$BUMP" >> $GITHUB_OUTPUT
-
-          # 3) 다음 버전 계산
-          IFS='.' read -r MA MI PA <<< "$CURRENT"
-          case "$BUMP" in
-            major) MA=$((MA+1)); MI=0; PA=0 ;;
-            minor) MI=$((MI+1)); PA=0 ;;
-            patch) PA=$((PA+1)) ;;
-          esac
-          NEXT="${MA}.${MI}.${PA}"
-          echo "$NEXT" > VERSION
-          echo "next=$NEXT" >> $GITHUB_OUTPUT
-          echo "Next version: $NEXT (bump: $BUMP)"
-
-      - name: Commit VERSION bump
-        run: |
-          git add VERSION
-          git commit -m "chore(release): bump version to $(cat VERSION)"
-          git push origin HEAD:master
-
-      - name: Create and push tag
-        run: |
-          V="v$(cat VERSION)"
-          git tag -a "$V" -m "Release $V"
-          git push origin "$V"
-
-
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
