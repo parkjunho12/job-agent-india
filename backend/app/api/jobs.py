@@ -15,7 +15,6 @@ from app.api.auth import get_current_user
 
 router = APIRouter()
 
-
 @router.post("/", response_model=JobResponse, status_code=status.HTTP_201_CREATED)
 async def create_job(
     job_data: JobCreate,
