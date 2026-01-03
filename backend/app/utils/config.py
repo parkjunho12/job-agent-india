@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     
     # Database
     
-    DATABASE_URL: str = "sqlite:////Users/mac/Documents/01_Projects/01_AI_Projects/03_Agents/job-agent-uk/database/job_agent.db"
+    DATABASE_URL: str = "sqlite:////Users/mac/Documents/01_Projects/01_AI_Projects/03_Agents/job-agent-india/database/job_agent.db"
     # Default to SQLite for dev
     DB_ECHO: bool = False  # SQLAlchemy echo SQL queries
     

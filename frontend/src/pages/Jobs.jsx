@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { jobsApi } from '../services/api'
-import { Briefcase, MapPin, Calendar, Search, Filter, Plus, ExternalLink } from 'lucide-react'
+import { Briefcase, MapPin, Calendar, Search, Filter, Plus, ExternalLink, X, Loader, AlertCircle } from 'lucide-react'
 
 function Jobs() {
+  const queryClient = useQueryClient()
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState('all')
+  const [showAddModal, setShowAddModal] = useState(false)
   
   const { data, isLoading, error } = useQuery({
     queryKey: ['jobs'],
@@ -34,7 +36,10 @@ function Jobs() {
               Manage your job postings
             </p>
           </div>
-          <button className="btn btn-primary flex items-center gap-2">
+          <button 
+            onClick={() => setShowAddModal(true)}
+            className="btn btn-primary flex items-center gap-2"
+          >
             <Plus className="w-5 h-5" />
             Add Job Manually
           </button>
@@ -198,6 +203,264 @@ function Jobs() {
           Showing {filteredJobs.length} of {jobs.length} jobs
         </div>
       )}
+
+      {/* Add Job Modal */}
+      {showAddModal && (
+        <AddJobModal
+          isOpen={showAddModal}
+          onClose={() => setShowAddModal(false)}
+          onSuccess={() => {
+            queryClient.invalidateQueries(['jobs'])
+            setShowAddModal(false)
+          }}
+        />
+      )}
+    </div>
+  )
+}
+
+// Add Job Modal Component
+function AddJobModal({ isOpen, onClose, onSuccess }) {
+  const [formData, setFormData] = useState({
+    title: '',
+    company: '',
+    location: '',
+    url: '',
+    description: '',
+    required_skills: '',
+    required_experience: '',
+    salary_range: '',
+    job_type: '',
+  })
+  
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    
+    try {
+      setSaving(true)
+      setError('')
+      
+      const payload = {
+        title: formData.title,
+        company: formData.company,
+        location: formData.location || null,
+        url: formData.url || null,
+        description: formData.description || null,
+        required_skills: formData.required_skills 
+          ? formData.required_skills.split(',').map(s => s.trim()).filter(s => s)
+          : [],
+        required_experience: formData.required_experience || null,
+        salary_range: formData.salary_range || null,
+        job_type: formData.job_type || null,
+        portal_type: 'manual',
+        status: 'saved'
+      }
+      
+      await jobsApi.create(payload)
+      onSuccess()
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Failed to save job')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (!isOpen) return null
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
+      <div className="bg-white rounded-lg max-w-2xl w-full mx-4 my-8">
+        <div className="p-6 max-h-[90vh] overflow-y-auto">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold text-gray-900">Add Job Manually</h2>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <X size={24} />
+            </button>
+          </div>
+          
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Job Title */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Job Title *
+              </label>
+              <input
+                type="text"
+                value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                className="input w-full"
+                placeholder="e.g., Senior Software Engineer"
+                required
+              />
+            </div>
+
+            {/* Company */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Company *
+              </label>
+              <input
+                type="text"
+                value={formData.company}
+                onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+                className="input w-full"
+                placeholder="e.g., Google"
+                required
+              />
+            </div>
+
+            {/* Location & Job Type */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Location
+                </label>
+                <input
+                  type="text"
+                  value={formData.location}
+                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                  className="input w-full"
+                  placeholder="e.g., London, UK"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Job Type
+                </label>
+                <select
+                  value={formData.job_type}
+                  onChange={(e) => setFormData({ ...formData, job_type: e.target.value })}
+                  className="input w-full"
+                >
+                  <option value="">Select type</option>
+                  <option value="Full-time">Full-time</option>
+                  <option value="Part-time">Part-time</option>
+                  <option value="Contract">Contract</option>
+                  <option value="Internship">Internship</option>
+                  <option value="Remote">Remote</option>
+                  <option value="Hybrid">Hybrid</option>
+                </select>
+              </div>
+            </div>
+
+            {/* URL */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Job URL (optional)
+              </label>
+              <input
+                type="url"
+                value={formData.url}
+                onChange={(e) => setFormData({ ...formData, url: e.target.value })}
+                className="input w-full"
+                placeholder="https://..."
+              />
+            </div>
+
+            {/* Description */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Job Description
+              </label>
+              <textarea
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                className="input w-full"
+                rows={6}
+                placeholder="Paste the job description here..."
+              />
+            </div>
+
+            {/* Required Skills */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Required Skills (comma separated)
+              </label>
+              <input
+                type="text"
+                value={formData.required_skills}
+                onChange={(e) => setFormData({ ...formData, required_skills: e.target.value })}
+                className="input w-full"
+                placeholder="e.g., Python, React, AWS, Docker"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Separate skills with commas
+              </p>
+            </div>
+
+            {/* Experience & Salary */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Required Experience
+                </label>
+                <input
+                  type="text"
+                  value={formData.required_experience}
+                  onChange={(e) => setFormData({ ...formData, required_experience: e.target.value })}
+                  className="input w-full"
+                  placeholder="e.g., 3-5 years"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Salary Range
+                </label>
+                <input
+                  type="text"
+                  value={formData.salary_range}
+                  onChange={(e) => setFormData({ ...formData, salary_range: e.target.value })}
+                  className="input w-full"
+                  placeholder="e.g., £50k - £70k"
+                />
+              </div>
+            </div>
+
+            {error && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
+                <AlertCircle className="text-red-600 flex-shrink-0" size={20} />
+                <p className="text-red-800 text-sm">{error}</p>
+              </div>
+            )}
+
+            {/* Buttons */}
+            <div className="flex gap-3 justify-end pt-4 border-t">
+              <button
+                type="button"
+                onClick={onClose}
+                disabled={saving}
+                className="btn btn-secondary"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={saving}
+                className="btn btn-primary flex items-center gap-2"
+              >
+                {saving ? (
+                  <>
+                    <Loader size={16} className="animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Plus size={16} />
+                    Add Job
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
     </div>
   )
 }
