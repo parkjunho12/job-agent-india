@@ -98,9 +98,10 @@ class ApplicationCreate(BaseModel):
 class ApplicationUpdate(BaseModel):
     status: Optional[ApplicationStatus] = None
     cover_letter: Optional[str] = None
-    answers: Optional[Dict[str, str]] = None
+    answers: Optional[Dict[str, Any]] = None
     notes: Optional[str] = None
     interview_date: Optional[datetime] = None
+    submitted_at: Optional[datetime] = None
 
 
 class ApplicationResponse(BaseModel):
@@ -109,7 +110,7 @@ class ApplicationResponse(BaseModel):
     job_id: int
     status: ApplicationStatus
     cover_letter: Optional[str]
-    answers: Dict[str, str]
+    answers: Dict[str, Any]  # Can contain answer objects with evidence, confidence
     matched_experiences: List[int]
     risk_score: int
     risk_factors: List[str]
@@ -135,6 +136,7 @@ class ApplicationSummary(BaseModel):
     status: ApplicationStatus
     submitted_at: Optional[datetime]
     created_at: datetime
+    answers: Optional[Dict[str, Any]] = None  # Include answers for display
     
     class Config:
         from_attributes = True

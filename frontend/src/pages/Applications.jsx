@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { applicationsApi } from '../services/api'
-import { FileText, CheckCircle, Clock, XCircle, Calendar, Briefcase, Filter } from 'lucide-react'
+import { FileText, CheckCircle, Clock, XCircle, Calendar, Briefcase, Filter, Trash2, ExternalLink } from 'lucide-react'
 
 function Applications() {
+  const queryClient = useQueryClient()
   const [filterStatus, setFilterStatus] = useState('all')
   
   const { data, isLoading } = useQuery({
@@ -17,6 +18,22 @@ function Applications() {
   const filteredApps = applications.filter(app => 
     filterStatus === 'all' || app.status === filterStatus
   )
+  
+  // Delete mutation
+  const deleteMutation = useMutation({
+    mutationFn: (id) => applicationsApi.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['applications'])
+    }
+  })
+  
+  const handleDelete = (id, e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (confirm('Are you sure you want to delete this application?')) {
+      deleteMutation.mutate(id)
+    }
+  }
   
   const getStatusIcon = (status) => {
     switch(status) {
@@ -77,18 +94,19 @@ function Applications() {
       {/* Filters */}
       <div className="flex items-center gap-4 mb-6">
         <Filter className="w-5 h-5 text-gray-600" />
-        <div className="flex gap-2">
-          {['all', 'submitted', 'draft'].map(status => (
+        <div className="flex gap-2 flex-wrap">
+          {['all', 'submitted', 'draft', 'rejected'].map(status => (
             <button
               key={status}
               onClick={() => setFilterStatus(status)}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                 filterStatus === status
-                  ? 'bg-primary-500 text-white'
+                  ? 'bg-primary-600 text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
-              {status.charAt(0).toUpperCase() + status.slice(1)}
+              {status === 'all' ? 'All' : status.charAt(0).toUpperCase() + status.slice(1)}
+              {status !== 'all' && ` (${applications.filter(a => a.status === status).length})`}
             </button>
           ))}
         </div>
@@ -102,8 +120,15 @@ function Applications() {
       ) : filteredApps.length === 0 ? (
         <div className="card text-center py-12">
           <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-gray-900 mb-2">No applications yet</h3>
-          <p className="text-gray-600 mb-6">Start applying to jobs to see them here</p>
+          <h3 className="text-xl font-semibold text-gray-900 mb-2">
+            {filterStatus === 'all' ? 'No applications yet' : `No ${filterStatus} applications`}
+          </h3>
+          <p className="text-gray-600 mb-6">
+            {filterStatus === 'all' 
+              ? 'Start applying to jobs to see them here'
+              : `Change filter to see other applications`
+            }
+          </p>
           <Link to="/jobs" className="btn btn-primary">
             Browse Jobs
           </Link>
@@ -111,7 +136,11 @@ function Applications() {
       ) : (
         <div className="space-y-4">
           {filteredApps.map(app => (
-            <div key={app.id} className="card hover:shadow-lg transition-all">
+            <Link
+              key={app.id}
+              to={`/applications/${app.id}`}
+              className="card hover:shadow-lg transition-all block"
+            >
               <div className="flex items-start gap-4">
                 <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
                   {getStatusIcon(app.status)}
@@ -121,9 +150,9 @@ function Applications() {
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex-1">
                       <h3 className="text-xl font-semibold text-gray-900 mb-1">
-                        {app.job_title}
+                        {app.job_title || 'Untitled Application'}
                       </h3>
-                      <p className="text-gray-700 font-medium">{app.company}</p>
+                      <p className="text-gray-700 font-medium">{app.company || 'Unknown Company'}</p>
                     </div>
                     <span className={`badge ${getStatusColor(app.status)}`}>
                       {app.status}
@@ -142,26 +171,46 @@ function Applications() {
                         <span>Submitted {new Date(app.submitted_at).toLocaleDateString()}</span>
                       </div>
                     )}
+                    
+                    {app.answers && (
+                      <div className="flex items-center gap-1">
+                        <FileText className="w-4 h-4" />
+                        <span>{Object.keys(app.answers).length} answers</span>
+                      </div>
+                    )}
                   </div>
                   
                   <div className="flex items-center gap-3">
-                    <Link 
-                      to={`/applications/${app.id}`}
-                      className="btn btn-primary btn-sm"
-                    >
+                    <span className="btn btn-primary btn-sm">
                       View Details
-                    </Link>
+                    </span>
                     
                     {app.status === 'draft' && (
-                      <button className="btn btn-success btn-sm">
-                        Continue Application
-                      </button>
+                      <span className="text-sm text-gray-600">
+                        Draft - Continue editing
+                      </span>
                     )}
+                    
+                    <button
+                      onClick={(e) => handleDelete(app.id, e)}
+                      disabled={deleteMutation.isPending}
+                      className="ml-auto btn btn-secondary btn-sm text-red-600 hover:bg-red-50 flex items-center gap-1"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Delete
+                    </button>
                   </div>
                 </div>
               </div>
-            </div>
+            </Link>
           ))}
+        </div>
+      )}
+      
+      {/* Results count */}
+      {filteredApps.length > 0 && (
+        <div className="mt-6 text-center text-gray-600">
+          Showing {filteredApps.length} of {applications.length} applications
         </div>
       )}
     </div>

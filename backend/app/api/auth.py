@@ -12,7 +12,7 @@ from passlib.context import CryptContext
 from typing import Optional
 
 from app.db.database import get_db
-from app.models.user import User, UserCreate, UserResponse, Token, TokenData
+from app.models.user import User, UserCreate, UserResponse, Token, TokenData, UserUpdate
 from app.utils.config import settings
 import hashlib
 import bcrypt
@@ -186,6 +186,51 @@ async def get_current_user_info(
     Get current user information
     """
     return current_user
+
+@router.put("/me", response_model=UserResponse)
+async def update_current_user(
+    user_data: UserUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Update current user profile
+    """
+    if user_data.full_name is not None:
+        current_user.full_name = user_data.full_name
+    
+    if user_data.location is not None:
+        current_user.location = user_data.location
+    
+    db.commit()
+    db.refresh(current_user)
+    
+    return current_user
+
+
+@router.post("/change-password")
+async def change_password(
+    current_password: str,
+    new_password: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Change user password
+    """
+    # Verify current password
+    if not verify_password(current_password, current_user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Incorrect current password"
+        )
+    
+    # Hash and update new password
+    current_user.hashed_password = get_password_hash(new_password)
+    db.commit()
+    
+    return {"message": "Password updated successfully"}
+
 
 
 @router.post("/logout")
