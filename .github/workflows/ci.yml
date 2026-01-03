@@ -106,6 +106,7 @@ jobs:
 
       # 최소 빌드 검증 (Vite 기준)
       - name: Build
+        working-directory: frontend
         run: npm run build
 
   # 4) Docker Build/Push (master push 또는 v* tag push일 때)
@@ -168,8 +169,8 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: |
-            ${{ env.REGISTRY_GHCR }}/${{ env.OWNER_REPO }}-${{ matrix.service }}
-            docker.io/${{ env.DOCKERHUB_NAMESPACE }}/job-agent-india-${{ matrix.service }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+            docker.io/ghdlwnsgh12/job-agent-india-${{ matrix.service }}
           tags: |
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/master' }}
             type=ref,event=tag  # v0.3.7 같은 태그 푸시 시 자동으로 v0.3.7 태그 생성
