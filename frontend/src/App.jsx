@@ -10,7 +10,7 @@ import Dashboard from './pages/Dashboard'
 import Jobs from './pages/Jobs'
 import JobDetail from './pages/JobDetail'
 import Applications from './pages/Applications'
-import ApplicationDetail from './pages/ApplicationDetail'
+import ApplicationDetail from './pages/Applicationdetail'
 import Experiences from './pages/Experiences'
 import Settings from './pages/Settings'
 
