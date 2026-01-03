@@ -1,9 +1,8 @@
-# Multi-stage build for optimized production image
+# Production Dockerfile with Gunicorn for better performance
 
 # Stage 1: Build dependencies
 FROM python:3.11-slim AS builder
 
-# Set working directory
 WORKDIR /app
 
 # Install build dependencies
@@ -14,20 +13,19 @@ RUN apt-get update && apt-get install -y \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements
+# Copy requirements and add gunicorn
 COPY requirements.txt .
+RUN echo "gunicorn==21.2.0" >> requirements.txt
 
 # Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
-RUN python -c "import sqlalchemy; print('sqlalchemy ok', sqlalchemy.__version__)"
+RUN pip install --no-cache-dir --user -r requirements.txt
 
 # Stage 2: Production image
 FROM python:3.11-slim
 
-# Set working directory
 WORKDIR /app
 
-# Install runtime dependencies only
+# Install runtime dependencies
 RUN apt-get update && apt-get install -y \
     postgresql-client \
     libpq5 \
@@ -35,10 +33,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy installed packages from builder
-COPY --from=builder /usr/local /usr/local
-
-
-# Make sure scripts in .local are usable
+COPY --from=builder /root/.local /root/.local
 ENV PATH=/root/.local/bin:$PATH
 
 # Copy application code
@@ -51,7 +46,7 @@ RUN chmod +x /entrypoint.sh
 # Create necessary directories
 RUN mkdir -p /app/uploads /app/logs
 
-# Create non-root user for security
+# Create non-root user
 RUN useradd -m -u 1000 appuser && \
     chown -R appuser:appuser /app
 USER appuser
@@ -66,5 +61,11 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
 # Set entrypoint
 ENTRYPOINT ["/entrypoint.sh"]
 
-# Run application
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run with Gunicorn (better for production)
+CMD ["gunicorn", "app.main:app", \
+     "--bind", "0.0.0.0:8000", \
+     "--workers", "4", \
+     "--worker-class", "uvicorn.workers.UvicornWorker", \
+     "--timeout", "120", \
+     "--access-logfile", "-", \
+     "--error-logfile", "-"]

@@ -25,6 +25,9 @@ class GenerateAnswersRequest(BaseModel):
 class GenerateCoverLetterRequest(BaseModel):
     job_id: int
 
+class MatchExperiencesRequest(BaseModel):
+    job_id: int
+
 
 @router.post("/answers")
 async def generate_answers(
@@ -114,13 +117,13 @@ async def generate_cover_letter(
 
 @router.post("/match-experiences")
 async def match_experiences(
-    job_id: int,
+    request: MatchExperiencesRequest,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Match user experiences to job requirements"""
     
-    job = db.query(Job).filter(Job.id == job_id, Job.user_id == current_user.id).first()
+    job = db.query(Job).filter(Job.id == request.job_id, Job.user_id == current_user.id).first()
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
     

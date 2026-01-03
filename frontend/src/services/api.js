@@ -143,6 +143,8 @@ export const applicationsApi = {
 
 // Experiences API
 export const experiencesApi = {
+    getAll: () => 
+        api.get('/experiences'),
   list: () => 
     api.get('/experiences'),
   
@@ -157,7 +159,35 @@ export const experiencesApi = {
   
   delete: (id) => 
     api.delete(`/experiences/${id}`),
+
+   getStats: () =>
+      api.get('/experiences/stats/summary'),
 }
+  
+  // CV API
+  export const cvApi = {
+    upload: async (file) => {
+      const formData = new FormData()
+      formData.append('file', file)
+      
+      return api.post('/cv/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      })
+    },
+    
+    parseAndSave: async (file) => {
+      const formData = new FormData()
+      formData.append('file', file)
+      
+      return api.post('/cv/parse-and-save', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      })
+    },
+  }
 
 // Generation API
 export const generationApi = {
@@ -168,7 +198,7 @@ export const generationApi = {
       api.post('/generation/cover-letter', { job_id: jobId }),
     
     matchExperiences: (jobId) => 
-      api.post('/generation/match-experiences', new URLSearchParams({ job_id: jobId }) ),
+      api.post('/generation/match-experiences', { job_id: jobId } ),
   }
   
   // Automation API
