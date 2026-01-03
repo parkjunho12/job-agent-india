@@ -1,0 +1,83 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:15-alpine
+    container_name: job-agent-db-prod
+    environment:
+      POSTGRES_USER: ${DB_USER:-jobagent}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME:-jobagent}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - job-agent-network
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-jobagent}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend API (Gunicorn for production)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
+    container_name: job-agent-backend-prod
+    environment:
+      - DATABASE_URL=postgresql://${DB_USER:-jobagent}:${DB_PASSWORD}@db:5432/${DB_NAME:-jobagent}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost,https://yourdomain.com}
+      - DEBUG=False
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_USER=${DB_USER:-jobagent}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME:-jobagent}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - job-agent-network
+    restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Frontend (Production build with Nginx)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: job-agent-frontend-prod
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - backend
+    networks:
+      - job-agent-network
+    restart: always
+    volumes:
+      # Optional: Mount SSL certificates
+      # - ./ssl/cert.pem:/etc/nginx/ssl/cert.pem:ro
+      # - ./ssl/key.pem:/etc/nginx/ssl/key.pem:ro
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+
+networks:
+  job-agent-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
