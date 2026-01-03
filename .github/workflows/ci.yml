@@ -171,7 +171,6 @@ jobs:
             ${{ env.REGISTRY_GHCR }}/${{ env.OWNER_REPO }}-${{ matrix.service }}
             docker.io/${{ env.DOCKERHUB_NAMESPACE }}/job-agent-india-${{ matrix.service }}
           tags: |
-            type=raw,value=sha-${{ steps.sha.outputs.short }}
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/master' }}
             type=ref,event=tag  # v0.3.7 같은 태그 푸시 시 자동으로 v0.3.7 태그 생성
 
