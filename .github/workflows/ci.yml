@@ -1,107 +1,140 @@
-name: CI & Release
+name: CI (Frontend/Backend) + Docker Build/Push
 
 on:
   pull_request:
-    branches: [develop, master]        # PR에서는 CI만
+    branches: [develop, master]
   push:
-    branches: [develop, master]                 # main에 머지되면 릴리스
+    branches: [develop, master]
+    tags:
+      - "v*"
 
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}   # ghcr.io/<owner>/<repo>
-  BUILD_CONTEXT: .               # Dockerfile 위치
-  PY: '3.10'
+  REGISTRY_GHCR: ghcr.io
+  OWNER_REPO: ${{ github.repository }} # owner/repo
+  DOCKERHUB_NAMESPACE: ghdlwnsgh12
 
 jobs:
-  # --- CI: PR 단계에서 lint/test + (선택)빌드검증 ---
-  ci:
-    name: Lint & Tests (PR)
-    if: startsWith(github.event_name, 'pull_request')
+  # 1) 어떤 폴더가 바뀌었는지 판단 (frontend/backend)
+  changes:
     runs-on: ubuntu-latest
-    container:
-      image: docker.io/ghdlwnsgh12/job-agent-india:latest
-      options: --user 0:0 
-    permissions:
-      contents: read
+    outputs:
+      frontend: ${{ steps.filter.outputs.frontend }}
+      backend: ${{ steps.filter.outputs.backend }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Show env
-        run: |
-          python3 -V
-
-      - name: Ensure test tools
-        run: |
-          python3 -m pip install --upgrade pip || true
-
-
-  # --- Release: main push 시 버전업 + 빌드/푸시 ---
-  release:
-    name: Version bump & Build/Push
-    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write      # 태그/커밋 푸시하려면 write 필요
-      packages: write      # GHCR 푸시
-      id-token: write
-    steps:
-      - uses: actions/checkout@v4
+      - name: Detect changed paths
+        id: filter
+        uses: dorny/paths-filter@v3
         with:
-          fetch-depth: 0   # 태그/기록 확인 위해 전체 가져오기
+          filters: |
+            frontend:
+              - 'frontend/**'
+            backend:
+              - 'backend/**'
+            # workflow / 공통파일 변경 시 둘 다 빌드하도록 하고 싶으면 아래처럼 추가 가능
+            # common:
+            #   - '.github/workflows/**'
+            #   - 'docker-compose.yml'
 
-      - name: Set Git identity
-        run: |
-          git config user.name  "parkjunho12"
-          git config user.email "ghdlwnsgh25@gmail.com"
+  # 2) PR/Push 시 Backend CI (변경 있을 때만)
+  backend-ci:
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
 
-      - name: Resolve current version
-        id: ver
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install deps
         run: |
-          # 1) VERSION 파일이 있으면 거기서, 없으면 최신 태그에서 유추
-          if [ -f VERSION ]; then
-            CURRENT=$(cat VERSION | tr -d ' \n')
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # 선택: 린트/타입체크가 실제로 구성돼 있으면 활성화
+      - name: Lint (optional)
+        run: |
+          python -m compileall .
+        # ruff/flake8/mypy 등을 쓰면 여기서 실행
+        # 예) ruff check . || true
+
+      - name: Tests (optional)
+        run: |
+          pytest -q || true
+        # 테스트가 준비돼 있으면 "|| true" 제거
+
+  # 3) PR/Push 시 Frontend CI (변경 있을 때만)
+  frontend-ci:
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install deps
+        run: npm ci
+
+      # 선택: lint 스크립트가 있으면 실행
+      - name: Lint (optional)
+        run: |
+          npm run lint --if-present
+
+      # 최소 빌드 검증 (Vite 기준)
+      - name: Build
+        run: npm run build
+
+  # 4) Docker Build/Push (master push 또는 v* tag push일 때)
+  docker-publish:
+    needs: [changes, backend-ci, frontend-ci]
+    if: >
+      (github.event_name == 'push') &&
+      (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v'))
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [frontend, backend]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Decide if this service should publish
+        id: should
+        run: |
+          if [ "${{ matrix.service }}" = "frontend" ]; then
+            echo "changed=${{ needs.changes.outputs.frontend }}" >> $GITHUB_OUTPUT
           else
-            LAST_TAG=$(git tag --list 'v*' | sort -V | tail -n1 || true)
-            CURRENT=${LAST_TAG#v}
-            if [ -z "$CURRENT" ]; then CURRENT="0.0.0"; fi
+            echo "changed=${{ needs.changes.outputs.backend }}" >> $GITHUB_OUTPUT
           fi
-          echo "current=$CURRENT" >> $GITHUB_OUTPUT
 
-          # 2) bump 레벨 결정: 기본 patch, 커밋 메시지에 #major/#minor/#patch
-          MSG="$(git log -1 --pretty=%B)"
-          BUMP="patch"
-          echo "$MSG" | grep -qi '#major' && BUMP="major"
-          echo "$MSG" | grep -qi '#minor' && BUMP="minor"
-          echo "$MSG" | grep -qi '#patch' && BUMP="patch"
-          echo "bump=$BUMP" >> $GITHUB_OUTPUT
-
-          # 3) 다음 버전 계산
-          IFS='.' read -r MA MI PA <<< "$CURRENT"
-          case "$BUMP" in
-            major) MA=$((MA+1)); MI=0; PA=0 ;;
-            minor) MI=$((MI+1)); PA=0 ;;
-            patch) PA=$((PA+1)) ;;
-          esac
-          NEXT="${MA}.${MI}.${PA}"
-          echo "$NEXT" > VERSION
-          echo "next=$NEXT" >> $GITHUB_OUTPUT
-          echo "Next version: $NEXT (bump: $BUMP)"
-
-      - name: Commit VERSION bump
+      # 변경이 없고 master push인 경우는 스킵
+      # (단, v* 태그 릴리스는 강제로 둘 다 빌드하고 싶으면 아래 if를 제거하세요)
+      - name: Skip if not changed (master only)
+        if: steps.should.outputs.changed != 'true' && github.ref == 'refs/heads/master'
         run: |
-          git add VERSION
-          git commit -m "chore(release): bump version to $(cat VERSION)"
-          git push origin HEAD:master
-
-      - name: Create and push tag
-        run: |
-          V="v$(cat VERSION)"
-          git tag -a "$V" -m "Release $V"
-          git push origin "$V"
+          echo "No changes for ${{ matrix.service }}. Skipping publish."
+          exit 0
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -112,7 +145,7 @@ jobs:
       - name: Login GHCR
         uses: docker/login-action@v3
         with:
-          registry: ghcr.io
+          registry: ${{ env.REGISTRY_GHCR }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
@@ -122,36 +155,36 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: Compute short SHA
+        id: sha
+        run: echo "short=$(echo $GITHUB_SHA | cut -c1-7)" >> $GITHUB_OUTPUT
+
       - name: Docker metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-            docker.io/ghdlwnsgh12/job-agent-india
+            ${{ env.REGISTRY_GHCR }}/${{ env.OWNER_REPO }}-${{ matrix.service }}
+            docker.io/${{ env.DOCKERHUB_NAMESPACE }}/job-agent-india-${{ matrix.service }}
           tags: |
-            type=raw,value=v${{ steps.ver.outputs.next }}   # 새 버전 태그
-            type=raw,value=latest,enable=true               # latest 항상 부여
-            
+            type=raw,value=sha-${{ steps.sha.outputs.short }}
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/master' }}
+            type=ref,event=tag  # v0.3.7 같은 태그 푸시 시 자동으로 v0.3.7 태그 생성
+
       - name: Free disk space
         run: |
           df -h
           sudo rm -rf /usr/local/lib/android /opt/ghc /usr/share/dotnet /opt/hostedtoolcache || true
           docker system prune -af || true
           df -h
-        
-      - name: Build & Push
+
+      - name: Build & Push (${{ matrix.service }})
         uses: docker/build-push-action@v6
         with:
-          context: ${{ env.DOCKER_CONTEXT }}
-          file: ./Dockerfile
-          platforms: linux/amd64
+          context: ./${{ matrix.service }}
+          file: ./${{ matrix.service }}/Dockerfile
           push: true
+          platforms: linux/amd64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
-          cache-to:   type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
           provenance: false
-
-
-
