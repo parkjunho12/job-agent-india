@@ -110,7 +110,7 @@ export const jobsApi = {
     api.get(`/jobs/${id}`),
   
   create: (jobData) => 
-    api.post('/jobs', toForm(jobData)),
+    api.post('/jobs', jobData),
   
   update: (id, jobData) => 
     api.put(`/jobs/${id}`, toForm(jobData)),
