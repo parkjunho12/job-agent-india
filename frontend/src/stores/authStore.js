@@ -20,10 +20,9 @@ export const useAuthStore = create(
         })
         
         // Sync to Extension
-        console.log('🔄 Syncing token to extension...')
-        await extensionBridge.saveToken(token)
+        console.log('🔄 Syncing auth to extension...')
+        await extensionBridge.saveAuth(user, token)
       },
-      
       logout: async () => {
         // Clear Zustand state
         set({
@@ -33,8 +32,26 @@ export const useAuthStore = create(
         })
         
         // Clear from Extension
-        console.log('🔄 Clearing token from extension...')
-        await extensionBridge.clearToken()
+        console.log('🔄 Clearing auth from extension...')
+        await extensionBridge.clearAuth()
+      },
+       // Sync from extension on app start
+       syncFromExtension: async () => {
+        console.log('🔄 Checking extension for existing auth...')
+        const auth = await extensionBridge.getAuth()
+       
+        if (auth && auth.token && auth.user) {
+          console.log('✅ Found auth in extension, syncing to app...')
+          set({
+            user: auth.user,
+            token: auth.token,
+            isAuthenticated: true,
+          })
+          
+          return true
+        }
+        
+        return false
       },
       
       updateUser: (userData) => {

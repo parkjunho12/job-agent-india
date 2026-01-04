@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Job Agent</title>
+  <link rel="stylesheet" href="popup-styles.css">
+</head>
+<body>
+  <div class="popup-container">
+    <!-- Loading State -->
+    <div id="loadingState" class="loading">
+      <div class="spinner"></div>
+      <p>Loading...</p>
+    </div>
+    
+    <!-- Auth Required State -->
+    <div id="authRequired" style="display: none;">
+      <div class="header">
+        <h1>🚀 Job Agent</h1>
+        <p>Sign in to start saving jobs</p>
+      </div>
+      
+      <div id="authError" class="error" style="display: none;">
+        <p id="authErrorText"></p>
+      </div>
+      
+      <form id="loginForm" class="login-form">
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="loginEmail" required placeholder="you@example.com" />
+        </div>
+        
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="loginPassword" required placeholder="••••••••" />
+        </div>
+        
+        <button type="submit" class="btn btn-primary" id="loginSubmitBtn">
+          <span id="loginBtnText">Sign In</span>
+        </button>
+      </form>
+      
+      <div class="divider">
+        <span>Don't have an account?</span>
+      </div>
+      
+      <button class="btn btn-secondary" id="signUpBtn">Create Account</button>
+    </div>
+    
+    <!-- Authenticated State -->
+    <div id="authenticatedState" style="display: none;">
+      <div class="header">
+        <h1>💼 Job Agent</h1>
+      </div>
+      
+      <div class="user-card">
+        <div class="avatar" id="userAvatar">U</div>
+        <div class="user-info">
+          <h3 id="userName">User</h3>
+          <p id="userEmail">user@example.com</p>
+        </div>
+      </div>
+      
+      <div class="stats">
+        <div class="stat">
+          <div class="stat-value" id="jobCount">0</div>
+          <div class="stat-label">Jobs</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value" id="appCount">0</div>
+          <div class="stat-label">Apps</div>
+        </div>
+      </div>
+      
+      <div class="actions">
+        <button class="btn btn-primary" id="openPanelBtn">+ Quick Save Job</button>
+        <button class="btn btn-secondary" id="viewJobsBtn">View All Jobs</button>
+      </div>
+      
+      <div class="footer">
+        <a href="#" id="dashboardLink">Dashboard</a>
+        <span>•</span>
+        <a href="#" id="settingsLink">Settings</a>
+        <span>•</span>
+        <a href="#" id="signOutBtn">Sign Out</a>
+      </div>
+    </div>
+  </div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>

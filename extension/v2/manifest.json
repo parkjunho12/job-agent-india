@@ -1,0 +1,83 @@
+{
+    "manifest_version": 3,
+    "name": "Job Agent - Quick Save",
+    "version": "1.0.0",
+    "description": "Save and organize job descriptions from any source. Paste, analyze, and track your job search.",
+    
+    "permissions": [
+      "storage",
+      "clipboardRead",
+      "contextMenus",
+      "notifications",
+      "alarms",
+      "sidePanel"
+    ],
+    
+    "host_permissions": [
+      "http://localhost:8000/*",
+      "http://localhost:3000/*",
+      "https://*.jobagent.app/*",
+      "https://*.linkedin.com/*",
+      "https://*.naukri.com/*"
+    ],
+    
+    "background": {
+      "service_worker": "background.js"
+    },
+    "content_scripts": [
+        {
+          "matches": [
+            "http://localhost:3000/*",
+            "http://localhost:5173/*",
+            "https://*.jobagent.app/*",
+            "https://*.linkedin.com/*",
+            "https://*.naukri.com/*"
+          ],
+          "js": [
+            "content.js"
+          ],
+          "run_at": "document_end"
+        }
+      ],
+    "action": {
+      "default_popup": "popup.html",
+      "default_icon": {
+        "16": "icons/icon-16.png",
+        "32": "icons/icon-32.png",
+        "48": "icons/icon-48.png",
+        "128": "icons/icon-128.png"
+      }
+    },
+    
+    "side_panel": {
+      "default_path": "sidepanel.html"
+    },
+    
+    "icons": {
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    },
+    
+    "commands": {
+      "_execute_action": {
+        "suggested_key": {
+          "default": "Alt+J",
+          "mac": "Alt+J"
+        },
+        "description": "Open Job Agent panel"
+      },
+      "save-current": {
+        "suggested_key": {
+          "default": "Alt+S",
+          "mac": "Alt+S"
+        },
+        "description": "Quick save current form"
+      }
+    },
+    
+    "content_security_policy": {
+      "extension_pages": "script-src 'self'; object-src 'self'"
+    }
+  }
