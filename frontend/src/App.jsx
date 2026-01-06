@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useAuthStore } from './stores/authStore'
+import { useEffect } from 'react'
 
 // Pages
 import Landing from './pages/Landing'
@@ -33,7 +34,19 @@ const queryClient = new QueryClient({
 })
 
 function App() {
-  const { isAuthenticated } = useAuthStore()
+  const { isAuthenticated, syncFromExtension } = useAuthStore()
+
+
+  useEffect(() => {
+    console.log('🚀 App mounted, checking extension auth...')
+    syncFromExtension().then((synced) => {
+      if (synced) {
+        console.log('✅ Auth synced from extension')
+      } else {
+        console.log('ℹ️ No auth in extension')
+      }
+    })
+  }, [syncFromExtension])
 
   return (
     <QueryClientProvider client={queryClient}>

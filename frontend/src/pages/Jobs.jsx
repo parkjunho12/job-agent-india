@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { jobsApi } from '../services/api'
 import { Briefcase, MapPin, Calendar, Search, Filter, Plus, ExternalLink, X, Loader, AlertCircle } from 'lucide-react'
@@ -234,21 +234,21 @@ function AddJobModal({ isOpen, onClose, onSuccess }) {
   })
   
   const [saving, setSaving] = useState(false)
-  const [error, setError] = useState('')
+  const [error, setError] = useState(null)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     
     try {
       setSaving(true)
-      setError('')
+      setError(null)
       
       const payload = {
         title: formData.title,
         company: formData.company,
         location: formData.location || null,
-        url: formData.url || null,
-        description: formData.description || null,
+        url: formData.url || "",
+        description: formData.description || "",
         required_skills: formData.required_skills 
           ? formData.required_skills.split(',').map(s => s.trim()).filter(s => s)
           : [],
@@ -262,7 +262,30 @@ function AddJobModal({ isOpen, onClose, onSuccess }) {
       await jobsApi.create(payload)
       onSuccess()
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to save job')
+      console.error('Add job error:', err)
+      
+      // Parse error response
+      const errorDetail = err.response?.data?.detail
+      const statusCode = err.response?.status
+      
+      // Check for tier limit errors
+      if (statusCode === 403 || statusCode === 429) {
+        setError({
+          type: 'limit',
+          message: errorDetail || 'You have reached your plan limit',
+          action: 'upgrade'
+        })
+      } else if (statusCode === 400) {
+        setError({
+          type: 'validation',
+          message: errorDetail || 'Please check your input and try again'
+        })
+      } else {
+        setError({
+          type: 'error',
+          message: errorDetail || 'Failed to save job. Please try again.'
+        })
+      }
     } finally {
       setSaving(false)
     }
@@ -284,6 +307,14 @@ function AddJobModal({ isOpen, onClose, onSuccess }) {
               <X size={24} />
             </button>
           </div>
+          
+          {/* Error Message */}
+          {error && (
+            <ErrorMessage 
+              error={error} 
+              onClose={() => setError(null)} 
+            />
+          )}
           
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Job Title */}
@@ -423,13 +454,6 @@ function AddJobModal({ isOpen, onClose, onSuccess }) {
               </div>
             </div>
 
-            {error && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
-                <AlertCircle className="text-red-600 flex-shrink-0" size={20} />
-                <p className="text-red-800 text-sm">{error}</p>
-              </div>
-            )}
-
             {/* Buttons */}
             <div className="flex gap-3 justify-end pt-4 border-t">
               <button
@@ -460,6 +484,89 @@ function AddJobModal({ isOpen, onClose, onSuccess }) {
             </div>
           </form>
         </div>
+      </div>
+    </div>
+  )
+}
+
+// Error Message Component with Tier Limit Handling
+function ErrorMessage({ error, onClose }) {
+  const navigate = useNavigate()
+  
+  if (!error) return null
+  
+  const isLimitError = error.type === 'limit'
+  
+  return (
+    <div className={`mb-6 rounded-lg p-4 ${
+      isLimitError ? 'bg-yellow-50 border border-yellow-200' : 'bg-red-50 border border-red-200'
+    }`}>
+      <div className="flex items-start gap-3">
+        <div className="flex-shrink-0 mt-0.5">
+          {isLimitError ? (
+            <AlertCircle className="w-5 h-5 text-yellow-600" />
+          ) : (
+            <AlertCircle className="w-5 h-5 text-red-600" />
+          )}
+        </div>
+        
+        <div className="flex-1">
+          <h3 className={`font-semibold mb-1 ${
+            isLimitError ? 'text-yellow-900' : 'text-red-900'
+          }`}>
+            {isLimitError ? '⚠️ Plan Limit Reached' : 'Error'}
+          </h3>
+          
+          <p className={`text-sm mb-3 ${
+            isLimitError ? 'text-yellow-800' : 'text-red-800'
+          }`}>
+            {error.message}
+          </p>
+          
+          {isLimitError && (
+            <div className="space-y-2">
+              <div className="bg-white rounded-md p-3 border border-yellow-200">
+                <p className="text-sm text-gray-700 mb-2">
+                  <strong>Free Plan Limits:</strong>
+                </p>
+                <ul className="text-sm text-gray-600 space-y-1">
+                  <li>• 10 saved jobs per month</li>
+                  <li>• 5 AI-generated applications per month</li>
+                  <li>• Basic job analysis</li>
+                </ul>
+              </div>
+              
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    onClose()
+                    navigate('/settings')
+                  }}
+                  className="btn btn-primary text-sm py-2"
+                >
+                  ✨ Upgrade to Pro
+                </button>
+                <button
+                  onClick={() => navigate('/jobs')}
+                  className="btn btn-secondary text-sm py-2"
+                >
+                  View My Jobs
+                </button>
+              </div>
+              
+              <p className="text-xs text-gray-600 mt-2">
+                💡 <strong>Pro Plan</strong> includes unlimited jobs and AI generations for just £9/month
+              </p>
+            </div>
+          )}
+        </div>
+        
+        <button
+          onClick={onClose}
+          className="flex-shrink-0 text-gray-400 hover:text-gray-600"
+        >
+          <X className="w-5 h-5" />
+        </button>
       </div>
     </div>
   )

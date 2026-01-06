@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Job Agent</title>
+  <link rel="stylesheet" href="popup-styles.css">
+</head>
+<body>
+  <!-- Loading State -->
+  <div id="loadingState" class="loading-state">
+    <div class="spinner"></div>
+    <p>Loading...</p>
+  </div>
+
+  <!-- Auth Required State -->
+  <div id="authRequired" class="hidden">
+    <div class="header">
+      <div class="logo">
+        <div class="logo-icon"></div>
+        <div class="logo-text">Job Agent</div>
+      </div>
+      <div class="tagline">Apply to 100 jobs in 1 hour</div>
+    </div>
+
+    <div class="content">
+      <div id="authError" class="status status-error hidden">
+        <p id="authErrorText"></p>
+      </div>
+
+      <form id="loginForm" class="login-form">
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="loginEmail" required placeholder="you@example.com" />
+        </div>
+        
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="loginPassword" required placeholder="••••••••" />
+        </div>
+        
+        <button type="submit" class="button button-primary" id="loginSubmitBtn">
+          <span id="loginBtnText">Sign In</span>
+        </button>
+      </form>
+
+      <div class="divider">
+        <span>Don't have an account?</span>
+      </div>
+
+      <button class="button button-secondary" id="signUpBtn">Create Account</button>
+    </div>
+  </div>
+
+  <!-- Authenticated State -->
+  <div id="authenticatedState" class="hidden">
+    <div class="header">
+      <div class="logo">
+        <div class="logo-icon"></div>
+        <div class="logo-text">Job Agent</div>
+      </div>
+      <div class="tagline">Apply to 100 jobs in 1 hour</div>
+    </div>
+
+    <div class="content">
+      <div class="user-info-card">
+        <div class="user-avatar" id="userAvatar">U</div>
+        <div class="user-details">
+          <div class="user-name" id="userName">User</div>
+          <div class="user-email" id="userEmail">user@example.com</div>
+        </div>
+      </div>
+
+      <div class="stat-cards">
+        <div class="stat-card">
+          <div class="stat-number" id="jobCount">0</div>
+          <div class="stat-label">Saved Jobs</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number" id="appCount">0</div>
+          <div class="stat-label">Applications</div>
+        </div>
+      </div>
+
+      <button id="openPanelBtn" class="button button-primary">
+        🚀 Quick Save Job
+      </button>
+
+      <button id="viewJobsBtn" class="button button-secondary">
+        💼 View Saved Jobs
+      </button>
+
+      <div class="quick-links">
+        <a href="#" id="dashboardLink" class="quick-link">
+          <div class="quick-link-icon">📊</div>
+          <span>Dashboard</span>
+        </a>
+      </div>
+    </div>
+
+    <div class="footer">
+      <div class="footer-text">
+        <a href="#" id="signOutBtn" class="footer-link">Sign Out</a>
+      </div>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

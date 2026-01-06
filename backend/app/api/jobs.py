@@ -112,6 +112,17 @@ async def list_jobs(
     
     return jobs
 
+@router.get("/stats/count")
+async def get_jobs_count(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get total count of user's jobs
+    """
+    count = db.query(Job).filter(Job.user_id == current_user.id).count()
+    return {"count": count}
+
 
 @router.get("/{job_id}", response_model=JobResponse)
 async def get_job(

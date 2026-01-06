@@ -25,7 +25,7 @@ class Job(Base):
     title = Column(String(255), nullable=False)
     company = Column(String(255), nullable=False)
     location = Column(String(255))  # e.g., "London, UK (Hybrid)"
-    url = Column(Text, nullable=False)  # Original job posting URL
+    url = Column(Text, nullable=True)  # Original job posting URL
     
     # Portal Detection
     portal_type = Column(String(50))  # workday, greenhouse, lever, etc.

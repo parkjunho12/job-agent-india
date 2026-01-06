@@ -92,7 +92,7 @@ function Register() {
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-2 mb-4">
             <Sparkles className="w-10 h-10 text-primary-500" />
-            <h1 className="text-3xl font-bold">Job Agent India</h1>
+            <h1 className="text-3xl font-bold">Job Agent</h1>
           </div>
           <p className="text-gray-600">Create account and start applying!</p>
         </div>

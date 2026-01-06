@@ -63,7 +63,7 @@ class User(Base):
     def can_analyze_jd(self, current_count: int) -> bool:
         """Check if user can analyze more JDs based on tier"""
         if self.tier == "free":
-            return current_count < 5  # settings.FREE_TIER_JD_LIMIT
+            return current_count < 10  # settings.FREE_TIER_JD_LIMIT
         return True  # Pro/Ultimate: unlimited
     
     def can_generate_answer(self, current_count: int) -> bool:

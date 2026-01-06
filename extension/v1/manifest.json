@@ -1,6 +1,6 @@
 {
     "manifest_version": 3,
-    "name": "Job Agent India - Auto Application Helper",
+    "name": "Job Agent - Auto Application Helper",
     "version": "1.0.0",
     "description": "Save and analyze job postings from Naukri, LinkedIn with AI",
     

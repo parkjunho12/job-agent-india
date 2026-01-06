@@ -36,7 +36,6 @@ function Layout() {
           <Sparkles className="w-8 h-8 text-primary-500" />
           <div>
             <h1 className="text-xl font-bold text-gray-900">Job Agent</h1>
-            <p className="text-xs text-gray-500">India Edition</p>
           </div>
         </div>
         
