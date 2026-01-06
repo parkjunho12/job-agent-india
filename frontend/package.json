@@ -1,7 +1,7 @@
 {
     "name": "job-agent-india",
     "version": "0.1.0",
-    "description": "Job application automation for India - Apply to 100 jobs in 1 hour",
+    "description": "Job application automation - Apply to 100 jobs in 1 hour",
     "private": true,
     "type": "module",
     "scripts": {

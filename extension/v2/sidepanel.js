@@ -63,7 +63,7 @@ function setupEventListeners() {
   // Navigation
   document.getElementById('closeBtn').addEventListener('click', () => window.close())
   document.getElementById('openLoginBtn').addEventListener('click', openWebApp)
-  document.getElementById('viewJobsBtn').addEventListener('click', openWebApp)
+  document.getElementById('viewJobsBtn').addEventListener('click', () => openWebApp('/jobs'))
   document.getElementById('settingsBtn').addEventListener('click', () => openWebApp('/settings'))
   
   // Character count
@@ -195,7 +195,7 @@ async function handleSubmit(e) {
       location: document.getElementById('location').value.trim() || null,
       job_type: document.getElementById('jobType').value || null,
       salary_range: document.getElementById('salary').value.trim() || null,
-      url: document.getElementById('url').value.trim() || null,
+      url: document.getElementById('url').value.trim() || "",
       portal_type: 'manual', // ✅ Always manual
       notes: document.getElementById('notes').value.trim() || null
     }
@@ -211,7 +211,17 @@ async function handleSubmit(e) {
     })
     
     if (!response.ok) {
-      throw new Error('Failed to save job')
+      // Parse error response
+      const errorData = await response.json().catch(() => ({}))
+      const errorDetail = errorData.detail || 'Failed to save job'
+      
+      // Check for tier limit errors
+      if (response.status === 403 || response.status === 429) {
+        showLimitError(errorDetail)
+        return
+      }
+      
+      throw new Error(errorDetail)
     }
     
     const result = await response.json()
@@ -232,12 +242,40 @@ async function handleSubmit(e) {
     
   } catch (error) {
     console.error('Save error:', error)
-    showStatus('❌ Failed to save job', 'error')
+    showStatus(`❌ ${error.message}`, 'error')
   } finally {
     // Re-enable button
     submitBtn.disabled = false
     submitBtn.innerHTML = originalText
   }
+}
+
+function showLimitError(message) {
+  const statusEl = document.getElementById('statusMessage')
+  const textEl = statusEl.querySelector('.status-text')
+  
+  statusEl.className = 'status-message limit'
+  textEl.innerHTML = `
+    <div style="line-height: 1.5;">
+      <strong>⚠️ Plan Limit Reached</strong><br>
+      <span style="font-size: 13px; opacity: 0.9;">${message}</span><br>
+      <div style="margin-top: 8px; padding: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; font-size: 12px;">
+        <strong>Free Plan:</strong> 10 jobs/month<br>
+        <strong>Pro Plan:</strong> Unlimited jobs
+      </div>
+      <button onclick="openUpgradePage()" style="margin-top: 8px; padding: 6px 12px; background: white; color: #667eea; border: none; border-radius: 6px; font-weight: 500; cursor: pointer;">
+        ✨ Upgrade to Pro
+      </button>
+    </div>
+  `
+  statusEl.style.display = 'block'
+  
+  // Don't auto-hide limit errors
+}
+
+// Make function available globally for button onclick
+window.openUpgradePage = function() {
+  chrome.tabs.create({ url: 'http://localhost:3000/settings' })
 }
 
 function handleClearForm() {

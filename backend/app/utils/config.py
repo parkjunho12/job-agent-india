@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     """
     
     # App Settings
-    APP_NAME: str = "India Job Agent"
+    APP_NAME: str = "Job Agent"
     DEBUG: bool = False
     API_VERSION: str = "v1"
     

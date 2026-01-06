@@ -1,4 +1,4 @@
-// Popup Logic - Simplified and Debugged
+// Popup Logic - Indian Theme
 
 const WEB_APP_URL = 'http://localhost:3000'
 const API_URL = 'http://localhost:8000/api/v1'
@@ -15,17 +15,26 @@ document.addEventListener('DOMContentLoaded', () => {
 })
 
 async function init() {
-  console.log('[1/3] Init started')
+  console.log('[1/4] Init started')
   
-  // Always setup event listeners first
-  console.log('[2/3] Setting up event listeners...')
-  setupEventListeners()
-  console.log('Event listeners setup complete')
+  try {
+    // Always setup event listeners first
+    console.log('[2/4] Setting up event listeners...')
+    setupEventListeners()
+    console.log('✅ Event listeners setup complete')
+    
+    // Check auth
+    console.log('[3/4] Checking authentication...')
+    await checkAuth()
+    console.log('✅ Auth check complete')
+    
+  } catch (error) {
+    console.error('❌ Init error:', error)
+    // Fallback to showing login form
+    showAuthRequired()
+  }
   
-  // Check auth
-  console.log('[3/3] Checking authentication...')
-  await checkAuth()
-  console.log('Init complete!')
+  console.log('[4/4] Init complete!')
 }
 
 // ============================================================================
@@ -57,7 +66,7 @@ async function checkAuth() {
     }
     
     // Auth is valid
-    console.log('Auth valid → showing authenticated state')
+    console.log('✅ Auth valid → showing authenticated state')
     authToken = result.authToken
     currentUser = result.user
     showAuthenticatedState()
@@ -67,7 +76,7 @@ async function checkAuth() {
     loadStats().catch(err => console.log('Stats error (non-critical):', err))
     
   } catch (error) {
-    console.error('checkAuth error:', error)
+    console.error('❌ checkAuth error:', error)
     showAuthRequired()
   }
 }
@@ -100,40 +109,52 @@ function showAuthenticatedState() {
 // ============================================================================
 
 async function loadStats() {
-  if (!authToken) return
-  
-  try {
-    console.log('Fetching job count...')
-    const jobsResponse = await fetch(`${API_URL}/jobs?limit=1`, {
-      headers: { 'Authorization': `Bearer ${authToken}` }
-    })
+    if (!authToken) return
     
-    if (jobsResponse.ok) {
-      const jobsData = await jobsResponse.json()
-      const count = jobsData.total || (jobsData.data?.length || 0)
-      console.log('Job count:', count)
-      setText('jobCount', count)
+    try {
+      console.log('Fetching job count...')
+      const jobsResponse = await fetch(`${API_URL}/jobs/stats/count`, {
+        headers: { 'Authorization': `Bearer ${authToken}` }
+      })
+      
+      if (jobsResponse.ok) {
+        const jobsData = await jobsResponse.json()
+        console.log('Jobs count response:', jobsData)
+        
+        const count = jobsData.count || 0
+        console.log('Job count:', count)
+        setText('jobCount', count)
+      } else {
+        console.error('Jobs API error:', jobsResponse.status)
+        setText('jobCount', '0')
+      }
+    } catch (error) {
+      console.error('Job count error:', error)
+      setText('jobCount', '0')
     }
-  } catch (error) {
-    console.log('Job count error:', error.message)
-  }
-  
-  try {
-    console.log('Fetching app count...')
-    const appsResponse = await fetch(`${API_URL}/applications?limit=1`, {
-      headers: { 'Authorization': `Bearer ${authToken}` }
-    })
     
-    if (appsResponse.ok) {
-      const appsData = await appsResponse.json()
-      const count = appsData.total || (appsData.data?.length || 0)
-      console.log('App count:', count)
-      setText('appCount', count)
+    try {
+      console.log('Fetching app count...')
+      const appsResponse = await fetch(`${API_URL}/applications/stats/count`, {
+        headers: { 'Authorization': `Bearer ${authToken}` }
+      })
+      
+      if (appsResponse.ok) {
+        const appsData = await appsResponse.json()
+        console.log('Apps count response:', appsData)
+        
+        const count = appsData.count || 0
+        console.log('App count:', count)
+        setText('appCount', count)
+      } else {
+        console.error('Apps API error:', appsResponse.status)
+        setText('appCount', '0')
+      }
+    } catch (error) {
+      console.error('App count error:', error)
+      setText('appCount', '0')
     }
-  } catch (error) {
-    console.log('App count error:', error.message)
   }
-}
 
 // ============================================================================
 // Event Listeners
@@ -213,25 +234,6 @@ async function handleLogin(e) {
     
     console.log('Auth stored successfully')
     
-    // Notify all open web app tabs
-    console.log('Notifying web app tabs...')
-    try {
-      const tabs = await chrome.tabs.query({ url: `${WEB_APP_URL}/*` })
-      console.log('Found web app tabs:', tabs.length)
-      
-      for (const tab of tabs) {
-        chrome.tabs.sendMessage(tab.id, {
-          type: 'AUTH_UPDATED',
-          token: access_token,
-          user: user
-        }).catch(() => {
-          console.log('Tab not ready for messages:', tab.id)
-        })
-      }
-    } catch (err) {
-      console.log('Could not notify tabs:', err)
-    }
-    
     // Update state
     authToken = access_token
     currentUser = user
@@ -257,7 +259,7 @@ async function handleOpenPanel() {
     // Check if sidePanel API is available
     if (!chrome.sidePanel) {
       console.error('Side Panel API not available')
-      alert('Side Panel not supported in this Chrome version. Please update to Chrome 114+')
+      alert('Side Panel not supported. Please update Chrome to 114+')
       return
     }
     
@@ -313,12 +315,16 @@ function $(id) {
 
 function show(id) {
   const el = $(id)
-  if (el) el.style.display = 'block'
+  if (el) {
+    el.classList.remove('hidden')
+  }
 }
 
 function hide(id) {
   const el = $(id)
-  if (el) el.style.display = 'none'
+  if (el) {
+    el.classList.add('hidden')
+  }
 }
 
 function setText(id, text) {

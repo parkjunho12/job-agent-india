@@ -83,6 +83,17 @@ async def list_applications(
     
     return summaries
 
+@router.get("/stats/count")
+async def get_applications_count(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get total count of user's applications
+    """
+    count = db.query(Application).filter(Application.user_id == current_user.id).count()
+    return {"count": count}
+
 
 @router.get("/{application_id}", response_model=ApplicationResponse)
 async def get_application(

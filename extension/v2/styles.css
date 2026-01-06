@@ -1,6 +1,7 @@
 /* Job Agent Extension - Safe Design Styles */
 
 :root {
+    /* UK Purple Theme */
     --primary-50: #eff6ff;
     --primary-100: #dbeafe;
     --primary-500: #3b82f6;
@@ -42,7 +43,7 @@
   
   /* Header */
   .panel-header {
-    background: linear-gradient(135deg, var(--primary-600), var(--primary-500));
+    background: linear-gradient(135deg, #fb832e 0%, #f36d0e 100%);
     color: white;
     padding: 1rem;
     flex-shrink: 0;
@@ -360,7 +361,7 @@
   }
   
   .btn-primary {
-    background: linear-gradient(135deg, var(--primary-600), var(--primary-500));
+    background: linear-gradient(135deg, #fb832e 0%, #f36d0e 100%);
     color: white;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   }
