@@ -121,7 +121,7 @@ export const jobsApi = {
     api.post('/jobs', jobData),
   
   update: (id, jobData) => 
-    api.put(`/jobs/${id}`, toForm(jobData)),
+    api.put(`/jobs/${id}`, jobData),
   
   delete: (id) => 
     api.delete(`/jobs/${id}`),
