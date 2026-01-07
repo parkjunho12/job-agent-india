@@ -3,7 +3,7 @@ UK Job Application Agent - FastAPI Backend
 Main application entry point
 """
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
@@ -47,18 +47,35 @@ app = FastAPI(
     version="0.1.0",
     lifespan=lifespan,
     docs_url="/docs",
-    redoc_url="/redoc"
+    redoc_url="/redoc",
+    redirect_slashes=True
 )
 
-
-# CORS configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "https://jobagent-career.com",
+        "https://www.jobagent-career.com"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# CORS configuration
+@app.middleware("http")
+async def trust_proxy_headers(request: Request, call_next):
+    """
+    Trust X-Forwarded-Proto header from nginx proxy
+    This ensures redirects use HTTPS instead of HTTP
+    """
+    forwarded_proto = request.headers.get("x-forwarded-proto")
+    if forwarded_proto:
+        request.scope["scheme"] = forwarded_proto
+    
+    response = await call_next(request)
+    return response
 
 
 # Health check endpoint

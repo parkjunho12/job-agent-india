@@ -117,3 +117,261 @@ results/
 ################################
 .prof
 *.prof
+
+# ============================================================================
+# Environment & Secrets
+# ============================================================================
+.env
+.env.*
+!.env.example
+!.env.template
+*.env
+.env.local
+.env.production
+.env.development
+frontend/.env
+frontend/.env.production
+frontend/.env.local
+backend/.env
+backend/.env.production
+
+# SSL Certificates (로컬 테스트용)
+*.pem
+*.key
+*.crt
+*.csr
+ssl/
+certs/
+
+# Secrets & API Keys
+secrets/
+*.secret
+config/secrets.yml
+
+# ============================================================================
+# Python (Backend)
+# ============================================================================
+# Byte-compiled / optimized
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+venv/
+env/
+ENV/
+backend/venv/
+backend/env/
+
+# Distribution / packaging
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Unit test / coverage
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.pytest_cache/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pyenv
+.python-version
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# Alembic
+backend/alembic/versions/*.py
+!backend/alembic/versions/__init__.py
+
+# ============================================================================
+# Node.js (Frontend)
+# ============================================================================
+node_modules/
+frontend/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# Build outputs
+dist/
+dist-ssr/
+frontend/dist/
+frontend/build/
+*.local
+
+# Logs
+logs/
+*.log
+
+# OS cache
+.DS_Store
+*.swp
+*.swo
+*~
+
+# Editor directories
+.vscode/
+!.vscode/extensions.json
+.idea/
+*.sublime-project
+*.sublime-workspace
+.history/
+
+# Vite
+.vite/
+frontend/.vite/
+
+# ============================================================================
+# Docker
+# ============================================================================
+# Don't ignore these - they're needed!
+# docker-compose.yml
+# docker-compose.prod.yml
+# Dockerfile
+
+# Docker volumes data
+volumes/
+data/
+postgres_data/
+db_data/
+
+# ============================================================================
+# Database
+# ============================================================================
+*.db
+*.sqlite
+*.sqlite3
+*.sql
+!backend/init.sql
+backups/*.sql
+
+# ============================================================================
+# Logs & Temporary Files
+# ============================================================================
+*.log
+logs/
+*.tmp
+*.temp
+temp/
+tmp/
+
+# Application logs
+backend/logs/
+frontend/logs/
+
+# ============================================================================
+# Chrome Extension (if building locally)
+# ============================================================================
+extension/dist/
+extension/build/
+extension/*.crx
+extension/*.zip
+
+# ============================================================================
+# Backup Files
+# ============================================================================
+*.backup
+*.bak
+*.old
+*~
+.*.swp
+.*.swo
+
+# Config backups from scripts
+*.backup.*
+nginx.conf.backup.*
+vite.config.js.backup.*
+main.py.backup.*
+
+# ============================================================================
+# Generated/Uploaded Files
+# ============================================================================
+uploads/
+media/
+static/media/
+user-uploads/
+
+# CV/Resume uploads
+backend/uploads/
+backend/media/
+
+# ============================================================================
+# Testing
+# ============================================================================
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
+coverage/
+
+# ============================================================================
+# CI/CD
+# ============================================================================
+.github/secrets/
+
+# ============================================================================
+# Misc
+# ============================================================================
+.terraform/
+*.tfstate
+*.tfstate.backup
+
+# MacOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+.directory
+.Trash-*
+
+# ============================================================================
+# Keep These Files (Don't Ignore)
+# ============================================================================
+# !.env.example
+# !.env.template
+# !docker-compose.yml
+# !docker-compose.prod.yml
+# !Dockerfile
+# !frontend/Dockerfile
+# !backend/Dockerfile
+# !nginx/nginx.conf
+# !README.md
+# !DEPLOYMENT.md
