@@ -5,6 +5,7 @@ Handles job description management
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy.orm.attributes import flag_modified
 from typing import List
 
 from app.db.database import get_db
@@ -157,6 +158,7 @@ async def update_job(
 ):
     """
     Update job details
+    custom_questions format: [{"text": "...", "required": "true"}, ...]
     """
     
     job = db.query(Job).filter(
@@ -170,8 +172,50 @@ async def update_job(
             detail="Job not found"
         )
     
-    # Update fields
-    update_data = job_update.dict(exclude_unset=True)
+    # Get update data
+    
+    update_data = job_update.model_dump(exclude_unset=True)
+    
+    # Handle custom_questions (List[Dict[str, str]])
+    if "custom_questions" in update_data:
+        questions = update_data["custom_questions"]
+        
+        # Convert string "true"/"false" to boolean
+        processed_questions = []
+        for i in range(len(questions)):
+            q = questions[i]
+            if isinstance(q, dict):
+                # Convert "required" from string to boolean
+                required_value = q.get("required", "false")
+                
+                # Handle different string representations
+                if isinstance(required_value, str):
+                    is_required = required_value.lower() in ["true", "1", "yes"]
+                elif isinstance(required_value, bool):
+                    is_required = required_value
+                else:
+                    is_required = False
+                
+                processed_questions.append({
+                    "id": str(i + 1),
+                    "text": str(q.get("text", "")),
+                    "type": "short_text",
+                    "required": str(is_required)
+                })
+        
+        job.custom_questions = processed_questions
+        flag_modified(job, "custom_questions")
+        update_data.pop("custom_questions")
+    
+    # Handle other JSON array fields
+    for field in ["required_skills", "preferred_skills", "key_responsibilities"]:
+        if field in update_data:
+            value = update_data[field]
+            setattr(job, field, value if value is not None else [])
+            flag_modified(job, field)
+            update_data.pop(field)
+    
+    # Apply remaining updates
     for field, value in update_data.items():
         setattr(job, field, value)
     

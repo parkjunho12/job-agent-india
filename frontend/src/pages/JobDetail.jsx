@@ -5,7 +5,7 @@ import { jobsApi, generationApi, applicationsApi, experiencesApi } from '../serv
 import { 
   ArrowLeft, ExternalLink, MapPin, Briefcase, Calendar, 
   Sparkles, FileText, Loader2, CheckCircle, AlertCircle,
-  Target, TrendingUp, Zap, Brain, X
+  Target, TrendingUp, Zap, Brain, X, Edit, Save, Plus, Trash2
 } from 'lucide-react'
 
 function JobDetail() {
@@ -25,13 +25,20 @@ function JobDetail() {
   const [showMatchModal, setShowMatchModal] = useState(false)
   const [matchedExperiences, setMatchedExperiences] = useState(null)
   
+  // Edit mode states
+  const [isEditing, setIsEditing] = useState(false)
+  const [editedJob, setEditedJob] = useState(null)
+  const [newQuestion, setNewQuestion] = useState('')
+  const [newSkill, setNewSkill] = useState('')
+  const [skillType, setSkillType] = useState('required')
+  
   // Fetch job details
   const { data, isLoading } = useQuery({
     queryKey: ['job', id],
     queryFn: () => jobsApi.get(id)
   })
   
-  // Fetch user experiences
+  // Fetch user experiences  
   const { data: experiencesData } = useQuery({
     queryKey: ['experiences'],
     queryFn: () => experiencesApi.list()
@@ -39,6 +46,129 @@ function JobDetail() {
   
   const job = data?.data
   const experiences = experiencesData?.data || []
+  
+  // Update job mutation
+  const updateJobMutation = useMutation({
+    mutationFn: (updateData) => jobsApi.update(id, updateData),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['job', id])
+      setIsEditing(false)
+      alert('Job updated successfully! ✨')
+    },
+    onError: (error) => {
+      alert('Failed to update job: ' + error.message)
+    }
+  })
+  
+  // Start editing
+  const handleStartEdit = () => {
+    setEditedJob({
+      title: job.title,
+      company: job.company,
+      location: job.location,
+      description: job.description,
+      required_skills: [...(job.required_skills || [])],
+      preferred_skills: [...(job.preferred_skills || [])],
+      // Convert to {text: string, required: string} format
+      custom_questions: (job.custom_questions || []).map(q => ({
+        text: typeof q === 'string' ? q : (q.text || ''),
+        required: typeof q === 'object' ? String(q.required || false) : 'false'
+      })),
+      key_responsibilities: [...(job.key_responsibilities || [])],
+      required_experience: job.required_experience || '',
+      salary_range: job.salary_range || ''
+    })
+    setIsEditing(true)
+  }
+  
+  // Cancel editing
+  const handleCancelEdit = () => {
+    setIsEditing(false)
+    setEditedJob(null)
+  }
+  
+  // Save changes
+  const handleSaveChanges = () => {
+    // Ensure custom_questions are in correct format: {text: string, required: string}
+    const dataToSave = {
+      ...editedJob,
+      custom_questions: editedJob.custom_questions.map(q => ({
+        text: String(q.text || ''),
+        required: String(q.required === true || q.required === 'true' || q.required === '1')
+      }))
+    }
+    
+    updateJobMutation.mutate(dataToSave)
+  }
+  
+  // Add custom question
+  const handleAddQuestion = () => {
+    if (!newQuestion.trim()) return
+    
+    setEditedJob({
+      ...editedJob,
+      custom_questions: [
+        ...editedJob.custom_questions,
+        { text: newQuestion.trim(), required: 'false' }  // String!
+      ]
+    })
+    setNewQuestion('')
+  }
+  
+  // Remove question
+  const handleRemoveQuestion = (index) => {
+    setEditedJob({
+      ...editedJob,
+      custom_questions: editedJob.custom_questions.filter((_, i) => i !== index)
+    })
+  }
+  
+  // Update question text
+  const handleUpdateQuestion = (index, text) => {
+    const updated = [...editedJob.custom_questions]
+    updated[index] = { ...updated[index], text }
+    setEditedJob({ ...editedJob, custom_questions: updated })
+  }
+  
+  // Toggle question required (convert to string)
+  const handleToggleRequired = (index) => {
+    const updated = [...editedJob.custom_questions]
+    const currentRequired = updated[index].required
+    
+    // Toggle: "true" <-> "false" (as strings)
+    updated[index] = { 
+      ...updated[index], 
+      required: (currentRequired === 'true' || currentRequired === true) ? 'false' : 'true'
+    }
+    
+    setEditedJob({ ...editedJob, custom_questions: updated })
+  }
+  
+  // Add skill
+  const handleAddSkill = () => {
+    if (!newSkill.trim()) return
+    
+    const field = skillType === 'required' ? 'required_skills' : 'preferred_skills'
+    if (editedJob[field].includes(newSkill.trim())) {
+      alert('Skill already exists')
+      return
+    }
+    
+    setEditedJob({
+      ...editedJob,
+      [field]: [...editedJob[field], newSkill.trim()]
+    })
+    setNewSkill('')
+  }
+  
+  // Remove skill
+  const handleRemoveSkill = (skill, type) => {
+    const field = type === 'required' ? 'required_skills' : 'preferred_skills'
+    setEditedJob({
+      ...editedJob,
+      [field]: editedJob[field].filter(s => s !== skill)
+    })
+  }
   
   // Reanalyze job mutation
   const reanalyzeMutation = useMutation({
@@ -70,7 +200,6 @@ function JobDetail() {
       const totalSteps = includeCoverLetter ? 3 : 2
       let currentStep = 0
       
-      // Step 1: Create application
       setGenerationProgress({
         step: 'Creating application...',
         current: ++currentStep,
@@ -85,7 +214,6 @@ function JobDetail() {
       
       let coverLetter = null
       
-      // Step 2: Generate cover letter (optional)
       if (includeCoverLetter) {
         setGenerationProgress({
           step: 'Generating cover letter...',
@@ -97,7 +225,6 @@ function JobDetail() {
         coverLetter = coverLetterResponse.data.cover_letter
       }
       
-      // Step 3: Generate answers
       let answers = {}
       if (job.custom_questions && job.custom_questions.length > 0) {
         setGenerationProgress({
@@ -113,7 +240,6 @@ function JobDetail() {
         answers = answersResponse.data.answers
       }
       
-      // Update application with generated content
       if (coverLetter || Object.keys(answers).length > 0) {
         await applicationsApi.update(appResponse.data.id, {
           cover_letter: coverLetter,
@@ -160,7 +286,6 @@ function JobDetail() {
   }
   
   const handleQuickApply = () => {
-    // Quick apply with default settings (no cover letter)
     setIncludeCoverLetter(false)
     generateApplicationMutation.mutate()
   }
@@ -187,7 +312,7 @@ function JobDetail() {
     )
   }
   
-  // Calculate real match percentage based on skills
+  // Calculate match score
   const calculateMatchScore = () => {
     if (!job || experiences.length === 0) return 0
     
@@ -198,17 +323,15 @@ function JobDetail() {
     
     if (jobSkills.size === 0) return 0
     
-    // Get all skills from experiences
     const userSkills = new Set()
     experiences.forEach(exp => {
-      if (exp.skills && Array.isArray(exp.skills)) {
-        exp.skills.forEach(skill => userSkills.add(skill.toLowerCase()))
+      if (exp.keywords && Array.isArray(exp.keywords)) {
+        exp.keywords.forEach(skill => userSkills.add(skill.toLowerCase()))
       }
     })
     
     if (userSkills.size === 0) return 0
     
-    // Calculate overlap
     const matchingSkills = [...jobSkills].filter(skill => userSkills.has(skill))
     const matchPercentage = Math.round((matchingSkills.length / jobSkills.size) * 100)
     
@@ -216,6 +339,15 @@ function JobDetail() {
   }
   
   const matchPercentage = calculateMatchScore()
+  const displayData = isEditing ? editedJob : job
+  
+  // Helper function to check if a question is required
+  const isQuestionRequired = (q) => {
+    if (typeof q === 'string') return false
+    if (typeof q.required === 'boolean') return q.required
+    if (typeof q.required === 'string') return q.required === 'true' || q.required === '1'
+    return false
+  }
   
   return (
     <div>
@@ -228,279 +360,326 @@ function JobDetail() {
         
         <div className="flex flex-col lg:flex-row items-start justify-between gap-4">
           <div className="flex-1">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">{job.title}</h1>
-            <p className="text-xl text-gray-700 font-medium mb-4">{job.company}</p>
-            
-            <div className="flex flex-wrap items-center gap-4 text-gray-600">
-              {job.location && (
-                <div className="flex items-center gap-2">
-                  <MapPin className="w-5 h-5" />
-                  <span>{job.location}</span>
-                </div>
-              )}
-              {job.portal_type && (
-                <div className="flex items-center gap-2">
-                  <Briefcase className="w-5 h-5" />
-                  <span className="capitalize">{job.portal_type}</span>
-                </div>
-              )}
-              <div className="flex items-center gap-2">
-                <Calendar className="w-5 h-5" />
-                <span>Added {new Date(job.created_at).toLocaleDateString()}</span>
+            {isEditing ? (
+              <div className="space-y-3">
+                <input
+                  type="text"
+                  value={editedJob.title}
+                  onChange={(e) => setEditedJob({ ...editedJob, title: e.target.value })}
+                  className="input text-2xl font-bold w-full"
+                  placeholder="Job Title"
+                />
+                <input
+                  type="text"
+                  value={editedJob.company}
+                  onChange={(e) => setEditedJob({ ...editedJob, company: e.target.value })}
+                  className="input text-xl w-full"
+                  placeholder="Company"
+                />
+                <input
+                  type="text"
+                  value={editedJob.location}
+                  onChange={(e) => setEditedJob({ ...editedJob, location: e.target.value })}
+                  className="input w-full"
+                  placeholder="Location"
+                />
               </div>
-            </div>
+            ) : (
+              <>
+                <h1 className="text-3xl font-bold text-gray-900 mb-2">{job.title}</h1>
+                <p className="text-xl text-gray-700 font-medium mb-4">{job.company}</p>
+                
+                <div className="flex flex-wrap items-center gap-4 text-gray-600">
+                  {job.location && (
+                    <div className="flex items-center gap-2">
+                      <MapPin className="w-5 h-5" />
+                      <span>{job.location}</span>
+                    </div>
+                  )}
+                  {job.portal_type && (
+                    <div className="flex items-center gap-2">
+                      <Briefcase className="w-5 h-5" />
+                      <span className="capitalize">{job.portal_type}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-5 h-5" />
+                    <span>Added {new Date(job.created_at).toLocaleDateString()}</span>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
           
           <div className="flex flex-wrap gap-3">
-            {job.url && (
-              <a href={job.url} target="_blank" rel="noopener noreferrer" className="btn btn-secondary flex items-center gap-2">
-                <ExternalLink className="w-5 h-5" />
-                View Original
-              </a>
+            {isEditing ? (
+              <>
+                <button 
+                  onClick={handleSaveChanges} 
+                  disabled={updateJobMutation.isPending}
+                  className="btn btn-primary flex items-center gap-2"
+                >
+                  {updateJobMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-5 h-5" />
+                      Save
+                    </>
+                  )}
+                </button>
+                <button 
+                  onClick={handleCancelEdit}
+                  disabled={updateJobMutation.isPending}
+                  className="btn btn-secondary"
+                >
+                  Cancel
+                </button>
+              </>
+            ) : (
+              <>
+                <button 
+                  onClick={handleStartEdit}
+                  className="btn btn-secondary flex items-center gap-2"
+                >
+                  <Edit className="w-5 h-5" />
+                  Edit
+                </button>
+                {job.url && (
+                  <a href={job.url} target="_blank" rel="noopener noreferrer" className="btn btn-secondary flex items-center gap-2">
+                    <ExternalLink className="w-5 h-5" />
+                    Original
+                  </a>
+                )}
+                <button 
+                  onClick={handleGenerateClick} 
+                  disabled={generateApplicationMutation.isPending}
+                  className="btn btn-primary flex items-center gap-2"
+                >
+                  {generateApplicationMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-5 h-5" />
+                      Generate Application
+                    </>
+                  )}
+                </button>
+              </>
             )}
-            <button 
-              onClick={handleGenerateClick} 
-              disabled={generateApplicationMutation.isPending}
-              className="btn btn-primary flex items-center gap-2"
-            >
-              {generateApplicationMutation.isPending ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  Generating...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-5 h-5" />
-                  Generate Application
-                </>
-              )}
-            </button>
           </div>
         </div>
       </div>
       
-      {/* Match Score Banner */}
-      {experiences.length > 0 && (
-        <>
-          <div className="card bg-gradient-to-r from-primary-50 to-success-50 border-primary-200 mb-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4 flex-1">
-                <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center flex-shrink-0">
-                  <Target className="w-8 h-8 text-primary-600" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-lg font-bold text-gray-900 mb-1">Profile Match Score</h3>
-                  <p className="text-sm text-gray-700">
-                    {(() => {
-                      const jobSkills = new Set([
-                        ...(job.required_skills || []),
-                        ...(job.preferred_skills || [])
-                      ].map(s => s.toLowerCase()))
-                      
-                      const userSkills = new Set()
-                      experiences.forEach(exp => {
-                        if (exp.skills && Array.isArray(exp.skills)) {
-                          exp.skills.forEach(skill => userSkills.add(skill.toLowerCase()))
-                        }
-                      })
-                      
-                      const matchingSkills = [...jobSkills].filter(skill => userSkills.has(skill))
-                      
-                      return `${matchingSkills.length} of ${jobSkills.size} required skills matched`
-                    })()}
-                  </p>
-                </div>
+      {/* Match Score & AI Actions - hidden when editing */}
+      {!isEditing && experiences.length > 0 && (
+        <div className="card bg-gradient-to-r from-primary-50 to-success-50 border-primary-200 mb-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4 flex-1">
+              <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center flex-shrink-0">
+                <Target className="w-8 h-8 text-primary-600" />
               </div>
-              <div className="text-right flex-shrink-0">
-                <div className={`text-4xl font-bold ${
-                  matchPercentage >= 70 ? 'text-success-600' : 
-                  matchPercentage >= 40 ? 'text-yellow-600' : 
-                  'text-red-600'
-                }`}>
-                  {matchPercentage}%
-                </div>
-                <p className="text-sm text-gray-600">
-                  {matchPercentage >= 70 ? 'Strong Match' : 
-                   matchPercentage >= 40 ? 'Moderate Match' : 
-                   matchPercentage > 0 ? 'Weak Match' : 
-                   'No Match'}
+              <div className="flex-1">
+                <h3 className="text-lg font-bold text-gray-900 mb-1">Profile Match</h3>
+                <p className="text-sm text-gray-700">
+                  {(() => {
+                    const jobSkills = [...(job.required_skills || []), ...(job.preferred_skills || [])]
+                    const userSkills = new Set()
+                    experiences.forEach(exp => {
+                      if (exp.keywords) exp.keywords.forEach(s => userSkills.add(s.toLowerCase()))
+                    })
+                    const matched = jobSkills.filter(s => userSkills.has(s.toLowerCase()))
+                    return `${matched.length} of ${jobSkills.length} skills matched`
+                  })()}
                 </p>
               </div>
             </div>
-          </div>
-          
-          {/* Matched Skills Details */}
-          {(() => {
-            const jobSkills = [
-              ...(job.required_skills || []),
-              ...(job.preferred_skills || [])
-            ]
-            
-            const userSkills = new Set()
-            experiences.forEach(exp => {
-              if (exp.skills && Array.isArray(exp.skills)) {
-                exp.skills.forEach(skill => userSkills.add(skill.toLowerCase()))
-              }
-            })
-            
-            const matchedSkills = jobSkills.filter(skill => 
-              userSkills.has(skill.toLowerCase())
-            )
-            const missingSkills = jobSkills.filter(skill => 
-              !userSkills.has(skill.toLowerCase())
-            )
-            
-            if (matchedSkills.length === 0 && missingSkills.length === 0) return null
-            
-            return (
-              <div className="card mb-6">
-                <h3 className="text-lg font-bold text-gray-900 mb-4">Skills Analysis</h3>
-                
-                {matchedSkills.length > 0 && (
-                  <div className="mb-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <CheckCircle className="w-4 h-4 text-success-600" />
-                      <p className="text-sm font-medium text-gray-700">
-                        You have these skills ({matchedSkills.length})
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {matchedSkills.map((skill, idx) => (
-                        <span key={idx} className="badge badge-success text-xs">
-                          {skill}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                
-                {missingSkills.length > 0 && (
-                  <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <AlertCircle className="w-4 h-4 text-yellow-600" />
-                      <p className="text-sm font-medium text-gray-700">
-                        Consider adding these skills ({missingSkills.length})
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {missingSkills.map((skill, idx) => (
-                        <span key={idx} className="badge bg-gray-100 text-gray-700 text-xs">
-                          {skill}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
+            <div className="text-right flex-shrink-0">
+              <div className={`text-4xl font-bold ${
+                matchPercentage >= 70 ? 'text-success-600' : 
+                matchPercentage >= 40 ? 'text-yellow-600' : 'text-red-600'
+              }`}>
+                {matchPercentage}%
               </div>
-            )
-          })()}
-        </>
+            </div>
+          </div>
+        </div>
       )}
       
       {/* AI Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <button 
-          onClick={() => matchExperiencesMutation.mutate()} 
-          disabled={matchExperiencesMutation.isPending} 
-          className="card hover:shadow-lg transition-all"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-              {matchExperiencesMutation.isPending ? (
-                <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
-              ) : (
-                <TrendingUp className="w-5 h-5 text-blue-600" />
-              )}
+      {!isEditing && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <button 
+            onClick={() => matchExperiencesMutation.mutate()} 
+            disabled={matchExperiencesMutation.isPending} 
+            className="card hover:shadow-lg transition-all"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                {matchExperiencesMutation.isPending ? (
+                  <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
+                ) : (
+                  <TrendingUp className="w-5 h-5 text-blue-600" />
+                )}
+              </div>
+              <div className="text-left">
+                <p className="font-semibold text-gray-900">Match Experiences</p>
+                <p className="text-xs text-gray-600">Find relevant skills</p>
+              </div>
             </div>
-            <div className="text-left">
-              <p className="font-semibold text-gray-900">Match Experiences</p>
-              <p className="text-xs text-gray-600">
-                {matchExperiencesMutation.isPending ? 'Analyzing...' : 'Find relevant skills'}
-              </p>
+          </button>
+          
+          <button 
+            onClick={() => reanalyzeMutation.mutate()} 
+            disabled={reanalyzeMutation.isPending} 
+            className="card hover:shadow-lg transition-all"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                {reanalyzeMutation.isPending ? (
+                  <Loader2 className="w-5 h-5 text-purple-600 animate-spin" />
+                ) : (
+                  <Brain className="w-5 h-5 text-purple-600" />
+                )}
+              </div>
+              <div className="text-left">
+                <p className="font-semibold text-gray-900">Reanalyze JD</p>
+                <p className="text-xs text-gray-600">Update AI analysis</p>
+              </div>
             </div>
-          </div>
-        </button>
-        
-        <button 
-          onClick={() => reanalyzeMutation.mutate()} 
-          disabled={reanalyzeMutation.isPending} 
-          className="card hover:shadow-lg transition-all"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-              {reanalyzeMutation.isPending ? (
-                <Loader2 className="w-5 h-5 text-purple-600 animate-spin" />
-              ) : (
-                <Brain className="w-5 h-5 text-purple-600" />
-              )}
+          </button>
+          
+          <button 
+            onClick={handleQuickApply}
+            disabled={generateApplicationMutation.isPending}
+            className="card hover:shadow-lg transition-all"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-success-100 rounded-lg flex items-center justify-center">
+                {generateApplicationMutation.isPending ? (
+                  <Loader2 className="w-5 h-5 text-success-600 animate-spin" />
+                ) : (
+                  <Zap className="w-5 h-5 text-success-600" />
+                )}
+              </div>
+              <div className="text-left">
+                <p className="font-semibold text-gray-900">Quick Apply</p>
+                <p className="text-xs text-gray-600">Fast generation</p>
+              </div>
             </div>
-            <div className="text-left">
-              <p className="font-semibold text-gray-900">Reanalyze JD</p>
-              <p className="text-xs text-gray-600">
-                {reanalyzeMutation.isPending ? 'Analyzing...' : 'Update AI analysis'}
-              </p>
-            </div>
-          </div>
-        </button>
-        
-        <button 
-          onClick={handleQuickApply}
-          disabled={generateApplicationMutation.isPending}
-          className="card hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-success-100 rounded-lg flex items-center justify-center">
-              {generateApplicationMutation.isPending ? (
-                <Loader2 className="w-5 h-5 text-success-600 animate-spin" />
-              ) : (
-                <Zap className="w-5 h-5 text-success-600" />
-              )}
-            </div>
-            <div className="text-left">
-              <p className="font-semibold text-gray-900">Quick Apply</p>
-              <p className="text-xs text-gray-600">
-                {generateApplicationMutation.isPending ? 'Generating...' : 'Fast generation'}
-              </p>
-            </div>
-          </div>
-        </button>
-      </div>
+          </button>
+        </div>
+      )}
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
           <div className="card">
             <h2 className="text-xl font-bold text-gray-900 mb-4">Job Description</h2>
-            <p className="text-gray-700 whitespace-pre-wrap">{job.description}</p>
+            {isEditing ? (
+              <textarea
+                value={editedJob.description}
+                onChange={(e) => setEditedJob({ ...editedJob, description: e.target.value })}
+                className="input min-h-[200px] font-mono text-sm"
+                placeholder="Job description..."
+              />
+            ) : (
+              <p className="text-gray-700 whitespace-pre-wrap">{job.description}</p>
+            )}
           </div>
           
-          {job.key_responsibilities && job.key_responsibilities.length > 0 && (
-            <div className="card">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Key Responsibilities</h2>
-              <ul className="space-y-2">
-                {job.key_responsibilities.map((resp, idx) => (
-                  <li key={idx} className="flex items-start gap-2 text-gray-700">
-                    <CheckCircle className="w-5 h-5 text-primary-500 mt-0.5 flex-shrink-0" />
-                    <span>{resp}</span>
-                  </li>
-                ))}
-              </ul>
+          {/* Custom Questions Section */}
+          <div className="card">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-900">Application Questions</h2>
+              {isEditing && (
+                <span className="text-sm text-gray-600">
+                  {editedJob.custom_questions.length} questions
+                </span>
+              )}
             </div>
-          )}
-          
-          {job.custom_questions && job.custom_questions.length > 0 && (
-            <div className="card">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Application Questions</h2>
-              <div className="space-y-3">
-                {job.custom_questions.map((q, idx) => (
-                  <div key={idx} className="p-4 bg-gray-50 rounded-lg">
-                    <p className="font-medium text-gray-900">{idx + 1}. {q.text}</p>
-                    {q.required && <span className="text-xs text-red-600">* Required</span>}
+            
+            {isEditing ? (
+              <div className="space-y-4">
+                {editedJob.custom_questions.map((q, idx) => (
+                  <div key={idx} className="p-4 bg-gray-50 rounded-lg border">
+                    <div className="flex items-start gap-3 mb-2">
+                      <span className="text-sm font-medium text-gray-600 mt-2">Q{idx + 1}</span>
+                      <textarea
+                        value={q.text}
+                        onChange={(e) => handleUpdateQuestion(idx, e.target.value)}
+                        className="input flex-1 min-h-[60px]"
+                        placeholder="Question text..."
+                      />
+                      <button
+                        onClick={() => handleRemoveQuestion(idx)}
+                        className="btn btn-secondary p-2"
+                        title="Remove question"
+                      >
+                        <Trash2 className="w-4 h-4 text-red-600" />
+                      </button>
+                    </div>
+                    <label className="flex items-center gap-2 ml-8">
+                      <input
+                        type="checkbox"
+                        checked={q.required === 'true' || q.required === true}
+                        onChange={() => handleToggleRequired(idx)}
+                      />
+                      <span className="text-sm">Required</span>
+                    </label>
                   </div>
                 ))}
+                
+                <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <div className="flex gap-3">
+                    <input
+                      type="text"
+                      value={newQuestion}
+                      onChange={(e) => setNewQuestion(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && handleAddQuestion()}
+                      className="input flex-1"
+                      placeholder="Add question..."
+                    />
+                    <button
+                      onClick={handleAddQuestion}
+                      disabled={!newQuestion.trim()}
+                      className="btn btn-primary"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-600 mt-2">
+                    💡 Press Enter or click + to add
+                  </p>
+                </div>
               </div>
-            </div>
-          )}
+            ) : (
+              displayData.custom_questions && displayData.custom_questions.length > 0 ? (
+                <div className="space-y-3">
+                  {displayData.custom_questions.map((q, idx) => (
+                    <div key={idx} className="p-4 bg-gray-50 rounded-lg">
+                      <p className="font-medium text-gray-900">
+                        {idx + 1}. {typeof q === 'string' ? q : q.text}
+                      </p>
+                      {isQuestionRequired(q) && (
+                        <span className="text-xs text-red-600">* Required</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-600 text-center py-8">
+                  No questions yet. Click Edit to add!
+                </p>
+              )
+            )}
+          </div>
         </div>
         
         {/* Sidebar */}
@@ -508,27 +687,51 @@ function JobDetail() {
           <div className="card bg-gradient-to-br from-primary-50 to-success-50 border-primary-200">
             <div className="flex items-center gap-2 mb-4">
               <Sparkles className="w-5 h-5 text-primary-600" />
-              <h3 className="font-bold text-gray-900">AI Analysis</h3>
+              <h3 className="font-bold text-gray-900">Skills</h3>
             </div>
             
-            {job.required_skills && job.required_skills.length > 0 && (
+            {displayData.required_skills && displayData.required_skills.length > 0 && (
               <div className="mb-4">
-                <p className="text-sm font-medium text-gray-700 mb-2">Required Skills</p>
+                <p className="text-sm font-medium text-gray-700 mb-2">Required</p>
                 <div className="flex flex-wrap gap-2">
-                  {job.required_skills.map((skill, idx) => (
-                    <span key={idx} className="badge badge-primary text-xs">{skill}</span>
+                  {displayData.required_skills.map((skill, idx) => (
+                    <span key={idx} className="badge badge-primary text-xs inline-flex items-center gap-1">
+                      {skill}
+                      {isEditing && (
+                        <button onClick={() => handleRemoveSkill(skill, 'required')}>
+                          <X className="w-3 h-3" />
+                        </button>
+                      )}
+                    </span>
                   ))}
                 </div>
               </div>
             )}
             
-            {job.preferred_skills && job.preferred_skills.length > 0 && (
-              <div>
-                <p className="text-sm font-medium text-gray-700 mb-2">Preferred Skills</p>
-                <div className="flex flex-wrap gap-2">
-                  {job.preferred_skills.map((skill, idx) => (
-                    <span key={idx} className="badge bg-gray-100 text-gray-700 text-xs">{skill}</span>
-                  ))}
+            {isEditing && (
+              <div className="p-3 bg-white rounded-lg border">
+                <div className="flex gap-2 mb-2">
+                  <input
+                    type="text"
+                    value={newSkill}
+                    onChange={(e) => setNewSkill(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && handleAddSkill()}
+                    className="input text-sm flex-1"
+                    placeholder="Add skill..."
+                  />
+                  <button onClick={handleAddSkill} disabled={!newSkill.trim()} className="btn btn-primary btn-sm">
+                    <Plus className="w-4 h-4" />
+                  </button>
+                </div>
+                <div className="flex gap-2">
+                  <label className="text-xs flex items-center gap-1">
+                    <input type="radio" checked={skillType === 'required'} onChange={() => setSkillType('required')} />
+                    Required
+                  </label>
+                  <label className="text-xs flex items-center gap-1">
+                    <input type="radio" checked={skillType === 'preferred'} onChange={() => setSkillType('preferred')} />
+                    Preferred
+                  </label>
                 </div>
               </div>
             )}
@@ -537,34 +740,59 @@ function JobDetail() {
           <div className="card">
             <h3 className="font-bold text-gray-900 mb-4">Quick Facts</h3>
             <div className="space-y-3">
-              {job.required_experience && (
-                <div>
-                  <p className="text-sm text-gray-600">Experience</p>
-                  <p className="font-medium text-gray-900">{job.required_experience}</p>
-                </div>
-              )}
-              {job.salary_range && (
-                <div>
-                  <p className="text-sm text-gray-600">Salary</p>
-                  <p className="font-medium text-gray-900">{job.salary_range}</p>
-                </div>
+              {isEditing ? (
+                <>
+                  <div>
+                    <label className="text-sm text-gray-600 block mb-1">Experience</label>
+                    <input
+                      type="text"
+                      value={editedJob.required_experience}
+                      onChange={(e) => setEditedJob({ ...editedJob, required_experience: e.target.value })}
+                      className="input w-full"
+                      placeholder="e.g., 3-5 years"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm text-gray-600 block mb-1">Salary</label>
+                    <input
+                      type="text"
+                      value={editedJob.salary_range}
+                      onChange={(e) => setEditedJob({ ...editedJob, salary_range: e.target.value })}
+                      className="input w-full"
+                      placeholder="e.g., £40k-60k"
+                    />
+                  </div>
+                </>
+              ) : (
+                <>
+                  {job.required_experience && (
+                    <div>
+                      <p className="text-sm text-gray-600">Experience</p>
+                      <p className="font-medium text-gray-900">{job.required_experience}</p>
+                    </div>
+                  )}
+                  {job.salary_range && (
+                    <div>
+                      <p className="text-sm text-gray-600">Salary</p>
+                      <p className="font-medium text-gray-900">{job.salary_range}</p>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>
           
-          <div className="card border-red-200 bg-red-50">
-            <h3 className="font-bold text-gray-900 mb-4">Danger Zone</h3>
-            <button 
-              onClick={handleDeleteJob} 
-              disabled={deleteMutation.isPending} 
-              className="btn btn-secondary w-full text-red-600 hover:bg-red-100"
-            >
-              {deleteMutation.isPending ? 'Deleting...' : 'Delete Job'}
-            </button>
-          </div>
+          {!isEditing && (
+            <div className="card border-red-200 bg-red-50">
+              <button onClick={handleDeleteJob} disabled={deleteMutation.isPending} className="btn btn-secondary w-full text-red-600">
+                {deleteMutation.isPending ? 'Deleting...' : 'Delete Job'}
+              </button>
+            </div>
+          )}
         </div>
       </div>
       
+      {/* Modals (Generate Options, Progress, Generated, Match) - unchanged */}
       {/* Generate Options Modal */}
       {showGenerateOptions && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">

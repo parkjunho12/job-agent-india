@@ -83,11 +83,36 @@ class JobCreate(JobBase):
 
 
 class JobUpdate(BaseModel):
+    """
+    Schema for updating job details
+    Supports partial updates - only provided fields will be updated
+    """
+    # Basic Info
     title: Optional[str] = None
     company: Optional[str] = None
     location: Optional[str] = None
     description: Optional[str] = None
-    status: Optional[str] = None
+    url: Optional[str] = None
+    
+    # Job Details
+    required_experience: Optional[str] = None
+    salary_range: Optional[str] = None
+    
+    # Skills
+    required_skills: Optional[List[str]] = None
+    preferred_skills: Optional[List[str]] = None
+    
+    # Responsibilities & Culture
+    key_responsibilities: Optional[List[str]] = None
+    
+    # Application Requirements
+    custom_questions: List[Dict[str, str]] = []
+    requires_cover_letter: Optional[bool] = None
+    requires_portfolio: Optional[bool] = None
+    
+    # Status & Metadata
+    portal_type: Optional[str] = None  # 'linkedin', 'indeed', 'company', etc.
+    
 
 
 class JobAnalysis(BaseModel):
