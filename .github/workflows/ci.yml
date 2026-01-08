@@ -2,7 +2,7 @@ name: CI (Frontend/Backend) + Docker Build/Push
 
 on:
   pull_request:
-    branches: [production]
+    branches: [develop, master]
   push:
     branches: [master, production]
     tags:
