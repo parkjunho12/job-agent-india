@@ -1,6 +1,6 @@
 {
     "manifest_version": 3,
-    "name": "Job Agent - Quick Save dev",
+    "name": "Job Agent - Quick Save",
     "version": "1.0.0",
     "description": "Save and organize job descriptions from any source. Paste, analyze, and track your job search.",
     
@@ -18,7 +18,10 @@
       "http://localhost:3000/*",
       "https://*.jobagent.app/*",
       "https://*.linkedin.com/*",
-      "https://*.naukri.com/*"
+      "https://*.naukri.com/*",
+      "https://www.jobagent-career.com/*",
+      "https://jobagent-career.com/*"
+
     ],
     
     "background": {
@@ -31,7 +34,8 @@
             "http://localhost:5173/*",
             "https://*.jobagent.app/*",
             "https://*.linkedin.com/*",
-            "https://*.naukri.com/*"
+            "https://*.naukri.com/*",
+            "https://www.jobagent-career.com/*"
           ],
           "js": [
             "content.js"

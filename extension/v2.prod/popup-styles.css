@@ -1,0 +1,356 @@
+/* Job Agent India - Popup Styles */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  body {
+    width: 360px;
+    min-height: 450px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    background: linear-gradient(135deg, #f97316 0%, #22c55e 100%);
+    color: #111827;
+  }
+  
+  .hidden {
+    display: none !important;
+  }
+  
+  /* ============================================================================
+     Loading State
+     ============================================================================ */
+  
+  .loading-state {
+    background: white;
+    padding: 60px 20px;
+    text-align: center;
+  }
+  
+  .spinner {
+    display: inline-block;
+    width: 40px;
+    height: 40px;
+    border: 3px solid #e5e7eb;
+    border-radius: 50%;
+    border-top-color: #f97316;
+    animation: spin 0.8s linear infinite;
+    margin-bottom: 16px;
+  }
+  
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+  
+  .loading-state p {
+    color: #6b7280;
+    font-size: 14px;
+  }
+  
+  /* ============================================================================
+     Header
+     ============================================================================ */
+  
+  .header {
+    background: white;
+    padding: 20px;
+    text-align: center;
+    border-bottom: 2px solid #f3f4f6;
+  }
+  
+  .logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  
+  .logo-icon {
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, #fb832e 0%, #f36d0e 100%);
+    border-radius: 8px;
+  }
+  
+  .logo-text {
+    font-size: 20px;
+    font-weight: 700;
+    background: linear-gradient(135deg, #fb832e 0%, #f36d0e 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  .tagline {
+    font-size: 12px;
+    color: #6b7280;
+  }
+  
+  /* ============================================================================
+     Content
+     ============================================================================ */
+  
+  .content {
+    padding: 20px 20px 2px 20px;
+    background: white;
+  }
+  
+  /* Status Messages */
+  .status {
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    text-align: center;
+    font-size: 13px;
+  }
+  
+  .status-success {
+    background: #dcfce7;
+    color: #166534;
+    border: 1px solid #bbf7d0;
+  }
+  
+  .status-error {
+    background: #fee2e2;
+    color: #991b1b;
+    border: 1px solid #fecaca;
+  }
+  
+  .status-info {
+    background: #dbeafe;
+    color: #1e40af;
+    border: 1px solid #bfdbfe;
+  }
+  
+  /* Login Form */
+  .login-form {
+    margin-bottom: 16px;
+  }
+  
+  .form-group {
+    margin-bottom: 16px;
+  }
+  
+  .form-group label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: #374151;
+    margin-bottom: 6px;
+  }
+  
+  input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 14px;
+    background: white;
+    color: #111827;
+  }
+  
+  input::placeholder {
+    color: #9ca3af;
+  }
+  
+  input:focus {
+    outline: none;
+    border-color: #f97316;
+    box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
+  }
+  
+  /* Divider */
+  .divider {
+    text-align: center;
+    margin: 16px 0;
+    padding: 12px 0;
+    border-top: 1px solid #e5e7eb;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  
+  .divider span {
+    font-size: 12px;
+    color: #6b7280;
+  }
+  
+  /* User Info Card */
+  .user-info-card {
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  
+  .user-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #fb832e 0%, #f36d0e 100%);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  
+  .user-details {
+    flex: 1;
+    min-width: 0;
+  }
+  
+  .user-name {
+    font-size: 16px;
+    font-weight: 600;
+    color: #111827;
+    margin-bottom: 4px;
+  }
+  
+  .user-email {
+    font-size: 13px;
+    color: #6b7280;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  
+  /* Stat Cards */
+  .stat-cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  
+  .stat-card {
+    background: #f9fafb;
+    padding: 16px;
+    border-radius: 10px;
+    text-align: center;
+    border: 1px solid #e5e7eb;
+  }
+  
+  .stat-number {
+    font-size: 28px;
+    font-weight: 700;
+    color: #f97316;
+    margin-bottom: 4px;
+  }
+  
+  .stat-label {
+    font-size: 11px;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  
+  /* Buttons */
+  .button {
+    width: 100%;
+    padding: 14px 20px;
+    border: none;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  
+  .button-primary {
+    background: linear-gradient(135deg, #fb832e 0%, #f36d0e 100%);
+    color: white;
+  }
+  
+  .button-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
+  }
+  
+  .button-primary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+  
+  .button-secondary {
+    background: white;
+    color: #374151;
+    border: 2px solid #e5e7eb;
+  }
+  
+  .button-secondary:hover {
+    background: #f9fafb;
+  }
+  
+  /* Quick Links */
+  .quick-links {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 2px solid #f3f4f6;
+  }
+  
+  .quick-link {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 10px;
+    margin-bottom: 4px;
+    border-radius: 8px;
+    text-decoration: none;
+    color: #374151;
+    font-size: 13px;
+    transition: all 0.2s;
+  }
+  
+  .quick-link:hover {
+    background: #f9fafb;
+  }
+  
+  .quick-link-icon {
+    width: 32px;
+    height: 32px;
+    background: #f3f4f6;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+  }
+  
+  /* ============================================================================
+     Footer
+     ============================================================================ */
+  
+  .footer {
+    padding: 16px 20px;
+    background: white;
+    border-top: 2px solid #f3f4f6;
+    text-align: center;
+  }
+  
+  .footer-text {
+    font-size: 11px;
+    color: #9ca3af;
+  }
+  
+  .footer-link {
+    color: #f97316;
+    text-decoration: none;
+    font-weight: 600;
+  }
+  
+  .footer-link:hover {
+    text-decoration: underline;
+  }
