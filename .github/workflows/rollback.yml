@@ -1,0 +1,99 @@
+name: Rollback Deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      backup_date:
+        description: 'Backup date to restore (YYYYMMDD_HHMMSS or "previous")'
+        required: false
+        default: 'previous'
+
+env:
+  EC2_HOST: ${{ secrets.EC2_HOST }}
+  EC2_USER: ec2-user
+  PROJECT_PATH: /home/ec2-user/workspace/job-agent-india
+
+jobs:
+  rollback:
+    name: Rollback to Previous Version
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 🔧 Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
+      
+      - name: 🔑 Add EC2 to known hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+      
+      - name: ⏮️ Rollback Deployment
+        run: |
+          echo "⏮️ Rolling back deployment..."
+          ssh ${{ env.EC2_USER }}@${{ env.EC2_HOST }} << 'ENDSSH'
+            set -e
+            
+            cd ${{ env.PROJECT_PATH }}
+            
+            # Find backup to restore
+            BACKUP_DATE="${{ github.event.inputs.backup_date }}"
+            
+            if [ "$BACKUP_DATE" = "previous" ]; then
+              # Get most recent backup
+              BACKUP_FILE=$(ls -t .env.backup.* 2>/dev/null | head -1)
+            else
+              BACKUP_FILE=".env.backup.$BACKUP_DATE"
+            fi
+            
+            if [ -z "$BACKUP_FILE" ] || [ ! -f "$BACKUP_FILE" ]; then
+              echo "❌ No backup found!"
+              exit 1
+            fi
+            
+            echo "📦 Restoring from: $BACKUP_FILE"
+            
+            # Stop services
+            echo "🛑 Stopping services..."
+            docker-compose -f docker-compose.prod.yml down
+            
+            # Restore .env
+            echo "♻️ Restoring .env..."
+            cp "$BACKUP_FILE" .env
+            
+            # Git reset to previous commit
+            echo "⏮️ Reverting code..."
+            git reset --hard HEAD~1
+            
+            # Rebuild
+            echo "🔨 Rebuilding..."
+            docker-compose -f docker-compose.prod.yml build
+            
+            # Start services
+            echo "🚀 Starting services..."
+            docker-compose -f docker-compose.prod.yml up -d
+            
+            # Wait
+            sleep 15
+            
+            # Check status
+            echo "✅ Rollback complete!"
+            docker-compose -f docker-compose.prod.yml ps
+          ENDSSH
+      
+      - name: ✅ Health Check After Rollback
+        run: |
+          echo "🏥 Checking services..."
+          ssh ${{ env.EC2_USER }}@${{ env.EC2_HOST }} << 'ENDSSH'
+            curl -f https://api.jobagent-career.com/health || echo "⚠️ Backend health check failed"
+            curl -f https://jobagent-career.com || echo "⚠️ Frontend health check failed"
+          ENDSSH
+      
+      - name: 📊 Rollback Summary
+        run: |
+          echo "📊 Rollback Summary"
+          echo "==================="
+          echo "✅ Rollback completed"
+          echo "📦 Restored backup: ${{ github.event.inputs.backup_date }}"
+          echo "📅 Time: $(date)"

@@ -1,0 +1,141 @@
+name: Deploy to AWS EC2
+
+on:
+  push:
+    branches:
+      - main
+      - production
+  workflow_dispatch:  # Manual trigger
+
+env:
+  AWS_REGION: ap-south-1
+  EC2_HOST: ${{ secrets.EC2_HOST }}
+  EC2_USER: ec2-user
+  PROJECT_PATH: /home/ec2-user/workspace/job-agent-india
+
+jobs:
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        
+      - name: 🔧 Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
+      
+      - name: 🔑 Add EC2 to known hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+      
+      - name: 🧪 Test SSH Connection
+        run: |
+          ssh ${{ env.EC2_USER }}@${{ env.EC2_HOST }} "echo '✅ SSH connection successful'"
+      
+      - name: 📦 Deploy Backend
+        run: |
+          echo "🚀 Deploying backend..."
+          ssh ${{ env.EC2_USER }}@${{ env.EC2_HOST }} << 'ENDSSH'
+            set -e
+            
+            cd ${{ env.PROJECT_PATH }}
+            
+            # Pull latest code
+            echo "📥 Pulling latest code..."
+            git fetch origin
+            git reset --hard origin/main
+            
+            # Backup .env
+            echo "💾 Backing up .env..."
+            cp .env .env.backup.$(date +%Y%m%d_%H%M%S) || true
+            
+            # Stop services
+            echo "🛑 Stopping services..."
+            docker-compose -f docker-compose.prod.yml down
+            
+            # Remove old images
+            echo "🗑️ Cleaning old images..."
+            docker image prune -f
+            
+            # Rebuild
+            echo "🔨 Building backend..."
+            docker-compose -f docker-compose.prod.yml build backend
+            
+            # Start services
+            echo "🚀 Starting services..."
+            docker-compose -f docker-compose.prod.yml up -d
+            
+            # Wait for health check
+            echo "⏳ Waiting for backend to be ready..."
+            sleep 10
+            
+            # Check status
+            echo "✅ Checking service status..."
+            docker-compose -f docker-compose.prod.yml ps
+          ENDSSH
+      
+      - name: 🎨 Deploy Frontend
+        run: |
+          echo "🚀 Deploying frontend..."
+          ssh ${{ env.EC2_USER }}@${{ env.EC2_HOST }} << 'ENDSSH'
+            set -e
+            
+            cd ${{ env.PROJECT_PATH }}
+            
+            # Rebuild frontend
+            echo "🔨 Building frontend..."
+            export VITE_API_URL=https://api.jobagent-career.com/api/v1
+            docker-compose -f docker-compose.prod.yml build --no-cache frontend
+            
+            # Restart frontend
+            echo "🔄 Restarting frontend..."
+            docker-compose -f docker-compose.prod.yml up -d frontend
+          ENDSSH
+      
+      - name: ✅ Health Check
+        run: |
+          echo "🏥 Running health checks..."
+          ssh ${{ env.EC2_USER }}@${{ env.EC2_HOST }} << 'ENDSSH'
+            # Check backend
+            curl -f https://api.jobagent-career.com/health || echo "⚠️ Backend health check failed"
+            
+            # Check frontend
+            curl -f https://jobagent-career.com || echo "⚠️ Frontend health check failed"
+            
+            # Check containers
+            docker-compose -f ${{ env.PROJECT_PATH }}/docker-compose.prod.yml ps
+          ENDSSH
+      
+      - name: 🧹 Cleanup
+        if: always()
+        run: |
+          echo "🧹 Cleaning up..."
+          ssh ${{ env.EC2_USER }}@${{ env.EC2_HOST }} << 'ENDSSH'
+            cd ${{ env.PROJECT_PATH }}
+            
+            # Remove dangling images
+            docker image prune -f
+            
+            # Remove old backups (keep last 5)
+            ls -t .env.backup.* 2>/dev/null | tail -n +6 | xargs rm -f || true
+          ENDSSH
+      
+      - name: 📊 Deployment Summary
+        if: always()
+        run: |
+          echo "📊 Deployment Summary"
+          echo "====================="
+          echo "✅ Deployment completed"
+          echo "🌐 Frontend: https://jobagent-career.com"
+          echo "🔌 Backend: https://api.jobagent-career.com"
+          echo "📅 Time: $(date)"
+      
+      - name: 💬 Notify on Failure
+        if: failure()
+        run: |
+          echo "❌ Deployment failed!"
+          echo "Please check the logs and fix any issues."

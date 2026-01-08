@@ -1,0 +1,115 @@
+name: Health Check
+
+on:
+  schedule:
+    # Run every 15 minutes
+    - cron: '*/15 * * * *'
+  workflow_dispatch:  # Manual trigger
+
+env:
+  FRONTEND_URL: https://jobagent-career.com
+  BACKEND_URL: https://api.jobagent-career.com
+
+jobs:
+  health-check:
+    name: Check Service Health
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 🏥 Check Frontend
+        run: |
+          echo "🌐 Checking frontend..."
+          
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" ${{ env.FRONTEND_URL }})
+          
+          if [ $STATUS -eq 200 ]; then
+            echo "✅ Frontend is healthy (HTTP $STATUS)"
+          else
+            echo "❌ Frontend is unhealthy (HTTP $STATUS)"
+            exit 1
+          fi
+      
+      - name: 🔌 Check Backend API
+        run: |
+          echo "🔌 Checking backend..."
+          
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" ${{ env.BACKEND_URL }}/health)
+          
+          if [ $STATUS -eq 200 ]; then
+            echo "✅ Backend is healthy (HTTP $STATUS)"
+          else
+            echo "❌ Backend is unhealthy (HTTP $STATUS)"
+            exit 1
+          fi
+      
+      - name: 🔒 Check SSL Certificates
+        run: |
+          echo "🔒 Checking SSL certificates..."
+          
+          # Check frontend SSL
+          DAYS_LEFT=$(echo | openssl s_client -servername jobagent-career.com -connect jobagent-career.com:443 2>/dev/null | openssl x509 -noout -dates | grep notAfter | cut -d= -f2 | xargs -I {} date -d {} +%s)
+          NOW=$(date +%s)
+          DAYS_REMAINING=$(( ($DAYS_LEFT - $NOW) / 86400 ))
+          
+          echo "📅 SSL certificate expires in $DAYS_REMAINING days"
+          
+          if [ $DAYS_REMAINING -lt 30 ]; then
+            echo "⚠️ SSL certificate expires soon! ($DAYS_REMAINING days left)"
+          else
+            echo "✅ SSL certificate is valid"
+          fi
+      
+      - name: 🐳 Check Docker Services
+        if: always()
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
+      
+      - name: 📊 Check Container Status
+        if: always()
+        run: |
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+          
+          echo "🐳 Checking Docker containers..."
+          ssh ec2-user@${{ secrets.EC2_HOST }} << 'ENDSSH'
+            cd /home/ec2-user/workspace/job-agent-india
+            
+            # Check if containers are running
+            RUNNING=$(docker-compose -f docker-compose.prod.yml ps | grep "Up" | wc -l)
+            TOTAL=$(docker-compose -f docker-compose.prod.yml ps | grep -v "NAME" | wc -l)
+            
+            echo "📊 Containers: $RUNNING/$TOTAL running"
+            
+            if [ $RUNNING -eq $TOTAL ]; then
+              echo "✅ All containers are running"
+            else
+              echo "⚠️ Some containers are not running!"
+              docker-compose -f docker-compose.prod.yml ps
+              exit 1
+            fi
+          ENDSSH
+      
+      - name: 💾 Check Disk Space
+        if: always()
+        run: |
+          echo "💾 Checking disk space..."
+          ssh ec2-user@${{ secrets.EC2_HOST }} << 'ENDSSH'
+            USAGE=$(df -h / | awk 'NR==2 {print $5}' | sed 's/%//')
+            
+            echo "📊 Disk usage: $USAGE%"
+            
+            if [ $USAGE -gt 80 ]; then
+              echo "⚠️ Disk usage is high! ($USAGE%)"
+            else
+              echo "✅ Disk usage is normal"
+            fi
+          ENDSSH
+      
+      - name: 📝 Health Check Summary
+        if: always()
+        run: |
+          echo "📊 Health Check Summary"
+          echo "======================="
+          echo "🌐 Frontend: ${{ env.FRONTEND_URL }}"
+          echo "🔌 Backend: ${{ env.BACKEND_URL }}"
+          echo "📅 Time: $(date)"
