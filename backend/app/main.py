@@ -55,7 +55,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "https://jobagent-career.com",
-        "https://www.jobagent-career.com"
+        "https://www.jobagent-career.com",
+        "chrome-extension://gaheedodgcbgnfehnoknpdfodiihlncb"
     ],
     allow_credentials=True,
     allow_methods=["*"],

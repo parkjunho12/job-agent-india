@@ -149,25 +149,10 @@ http {
         ssl_certificate_key /etc/letsencrypt/live/jobagent-career.com/privkey.pem;
         ssl_protocols TLSv1.2 TLSv1.3;
         ssl_ciphers HIGH:!aNULL:!MD5;
-
-        # CORS headers for all responses
-        add_header Access-Control-Allow-Origin "https://jobagent-career.com" always;
-        add_header Access-Control-Allow-Credentials "true" always;
+     
 
         # Proxy to backend
         location / {
-            # Handle OPTIONS preflight
-            if ($request_method = OPTIONS) {
-                add_header Access-Control-Allow-Origin "https://jobagent-career.com" always;
-                add_header Access-Control-Allow-Credentials "true" always;
-                add_header Access-Control-Allow-Methods "GET, POST, PUT, DELETE, PATCH, OPTIONS" always;
-                add_header Access-Control-Allow-Headers "Authorization, Content-Type, Accept" always;
-                add_header Access-Control-Max-Age 3600 always;
-                add_header Content-Length 0;
-                add_header Content-Type text/plain;
-                return 204;
-            }
-
             # Proxy to backend
             proxy_pass http://backend;
             proxy_http_version 1.1;
@@ -176,11 +161,8 @@ http {
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
             proxy_set_header X-Forwarded-Proto $scheme;
             
-            # Ensure CORS headers on backend responses
-            proxy_hide_header Access-Control-Allow-Origin;
-            proxy_hide_header Access-Control-Allow-Credentials;
-            add_header Access-Control-Allow-Origin "https://jobagent-career.com" always;
-            add_header Access-Control-Allow-Credentials "true" always;
+         
+           
         }
     }
 }
@@ -201,9 +183,9 @@ if [ -f .env ]; then
     
     # Add CORS if not present
     if ! grep -q "CORS_ORIGINS" .env; then
-        echo "CORS_ORIGINS=https://jobagent-career.com,https://www.jobagent-career.com" >> .env
+        echo "CORS_ORIGINS=https://jobagent-career.com,https://www.jobagent-career.com,chrome-extension://gaheedodgcbgnfehnoknpdfodiihlncb" >> .env
     else
-        sed -i 's|CORS_ORIGINS=.*|CORS_ORIGINS=https://jobagent-career.com,https://www.jobagent-career.com|g' .env
+        sed -i 's|CORS_ORIGINS=.*|CORS_ORIGINS=https://jobagent-career.com,https://www.jobagent-career.com,cchrome-extension://gaheedodgcbgnfehnoknpdfodiihlncb|g' .env
     fi
     
     echo "✅ .env updated"
