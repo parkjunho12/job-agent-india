@@ -5,7 +5,7 @@ on:
     branches:
       - master
       - production
-  workflow_dispatch:  # Manual trigger
+  workflow_dispatch: 
 
 env:
   AWS_REGION: ap-south-1
@@ -47,7 +47,7 @@ jobs:
             # Pull latest code
             echo "📥 Pulling latest code..."
             git fetch origin
-            git reset --hard origin/main
+            git reset --hard origin/production
             
             # Backup .env
             echo "💾 Backing up .env..."
@@ -139,4 +139,3 @@ jobs:
         run: |
           echo "❌ Deployment failed!"
           echo "Please check the logs and fix any issues."
-          
