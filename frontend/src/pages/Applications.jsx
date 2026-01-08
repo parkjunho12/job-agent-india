@@ -1,12 +1,20 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { applicationsApi } from '../services/api'
 import { FileText, CheckCircle, Clock, XCircle, Calendar, Briefcase, Filter, Trash2, ExternalLink } from 'lucide-react'
 
 function Applications() {
   const queryClient = useQueryClient()
-  const [filterStatus, setFilterStatus] = useState('all')
+  const [searchParams, setSearchParams] = useSearchParams()
+    // URL에서 초기 status 읽기
+  const initialStatus = (() => {
+    const s = searchParams.get('status')
+    return ['all', 'submitted', 'draft', 'rejected'].includes(s) ? s : 'all'
+  })()
+
+  const [filterStatus, setFilterStatus] = useState(initialStatus)
+  
   
   const { data, isLoading } = useQuery({
     queryKey: ['applications'],

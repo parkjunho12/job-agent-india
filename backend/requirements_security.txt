@@ -1,0 +1,10 @@
+# Security & Authentication
+passlib[argon2]==1.7.4  # Password hashing with Argon2
+bcrypt==4.1.2  # Bcrypt fallback
+
+# Email
+# For Gmail/SMTP, no additional package needed (built-in smtplib)
+sendgrid==6.11.0
+
+# Validation
+pydantic[email]==2.5.3

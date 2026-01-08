@@ -741,9 +741,15 @@ function JobDetail() {
                   ))}
                 </div>
               ) : (
-                <p className="text-gray-600 text-center py-8">
+                <div className="space-y-3"
+                onClick={handleStartEdit} 
+                >
+                <p
+                className="text-gray-600 text-center py-8">
                   No questions yet. Click Edit to add!
                 </p>
+    
+                </div>
               )
             )}
           </div>
