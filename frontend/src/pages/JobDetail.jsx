@@ -479,6 +479,7 @@ function JobDetail() {
       
       {/* Match Score & AI Actions - hidden when editing */}
       {!isEditing && experiences.length > 0 && (
+        <>
         <div className="card bg-gradient-to-r from-primary-50 to-success-50 border-primary-200 mb-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4 flex-1">
@@ -510,6 +511,72 @@ function JobDetail() {
             </div>
           </div>
         </div>
+            {/* Matched Skills Details */}
+            {(() => {
+            const jobSkills = [
+              ...(job.required_skills || []),
+              ...(job.preferred_skills || [])
+            ]
+            
+            const userSkills = new Set()
+            experiences.forEach(exp => {
+              if (exp.keywords && Array.isArray(exp.keywords)) {
+                exp.keywords.forEach(skill => userSkills.add(skill.toLowerCase()))
+              }
+            })
+            
+            const matchedSkills = jobSkills.filter(skill => 
+              userSkills.has(skill.toLowerCase())
+            )
+            const missingSkills = jobSkills.filter(skill => 
+              !userSkills.has(skill.toLowerCase())
+            )
+            
+            if (matchedSkills.length === 0 && missingSkills.length === 0) return null
+            
+            return (
+              <div className="card mb-6">
+                <h3 className="text-lg font-bold text-gray-900 mb-4">Skills Analysis</h3>
+                
+                {matchedSkills.length > 0 && (
+                  <div className="mb-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <CheckCircle className="w-4 h-4 text-success-600" />
+                      <p className="text-sm font-medium text-gray-700">
+                        You have these skills ({matchedSkills.length})
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {matchedSkills.map((skill, idx) => (
+                        <span key={idx} className="badge badge-success text-xs">
+                          {skill}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                {missingSkills.length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <AlertCircle className="w-4 h-4 text-yellow-600" />
+                      <p className="text-sm font-medium text-gray-700">
+                        Consider adding these skills ({missingSkills.length})
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {missingSkills.map((skill, idx) => (
+                        <span key={idx} className="badge bg-gray-100 text-gray-700 text-xs">
+                          {skill}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )
+          })()}
+        </>
       )}
       
       {/* AI Actions */}
