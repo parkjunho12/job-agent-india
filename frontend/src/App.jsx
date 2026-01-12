@@ -62,6 +62,7 @@ function App() {
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={isAuthenticated ? <Navigate to="/dashboard" /> : <Login />} />
+          <Route path="/landing" element={isAuthenticated ? <Navigate to="/dashboard" /> : <Landing />} />
           <Route path="/login" element={isAuthenticated ? <Navigate to="/dashboard" /> : <Login />} />
           <Route path="/register" element={isAuthenticated ? <Navigate to="/dashboard" /> : <Register />} />
           <Route path="/register-success" element={<RegisterSuccess />} />
