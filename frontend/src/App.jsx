@@ -7,6 +7,13 @@ import { useEffect } from 'react'
 import Landing from './pages/Landing'
 import Login from './pages/Login'
 import Register from './pages/Register'
+import RegisterSuccess from './pages/RegisterSuccess'
+import GitHubCallback from './pages/GitHubCallback'
+import GoogleCallback from './pages/GoogleCallback'
+import VerifyEmail from './pages/VerifyEmail'
+import ResendVerification from './pages/ResendVerification'
+import ForgotPassword from './pages/ForgotPassword'
+import ResetPassword from './pages/ResetPassword'
 import Dashboard from './pages/Dashboard'
 import Jobs from './pages/Jobs'
 import JobDetail from './pages/JobDetail'
@@ -14,6 +21,7 @@ import Applications from './pages/Applications'
 import ApplicationDetail from './pages/Applicationdetail'
 import Experiences from './pages/Experiences'
 import Settings from './pages/Settings'
+
 
 // Components
 import Layout from './components/Layout'
@@ -53,9 +61,23 @@ function App() {
       <Router>
         <Routes>
           {/* Public Routes */}
-          <Route path="/" element={isAuthenticated ? <Navigate to="/dashboard" /> : <Landing />} />
+          <Route path="/" element={isAuthenticated ? <Navigate to="/dashboard" /> : <Login />} />
           <Route path="/login" element={isAuthenticated ? <Navigate to="/dashboard" /> : <Login />} />
           <Route path="/register" element={isAuthenticated ? <Navigate to="/dashboard" /> : <Register />} />
+          <Route path="/register-success" element={<RegisterSuccess />} />
+
+          {/* Email Verification */}
+          <Route path="/verify-email" element={<VerifyEmail />} />
+          <Route path="/resend-verification" element={<ResendVerification />} />
+          
+          {/* Password Reset */}
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          
+          {/* OAuth Callbacks */}
+          <Route path="/auth/google/callback" element={<GoogleCallback />} />
+          <Route path="/auth/github/callback" element={<GitHubCallback />} />
+          
           
           {/* Protected Routes */}
           <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
@@ -69,7 +91,7 @@ function App() {
           </Route>
           
           {/* Catch all */}
-          <Route path="*" element={<Navigate to="/" />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Router>
     </QueryClientProvider>

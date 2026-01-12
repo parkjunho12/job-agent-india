@@ -7,6 +7,8 @@ from typing import List, Optional
 from functools import lru_cache
 from pathlib import Path
 
+BASE_DIR = Path(__file__).resolve().parents[2]   # backend/ 기준 (app/core/config.py 라면)
+ENV_PATH = BASE_DIR / ".env"
 
 class Settings(BaseSettings):
     """
@@ -28,6 +30,7 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "your-secret-key-change-in-production"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 7  # 7 days
     
     # CORS
     CORS_ORIGINS: List[str] = [
@@ -80,8 +83,25 @@ class Settings(BaseSettings):
     PRO_TIER_JD_LIMIT: int = -1  # Unlimited
     PRO_TIER_ANSWER_LIMIT: int = 50
     
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
+    
+    GITHUB_CLIENT_ID : str = ""
+    GITHUB_CLIENT_SECRET: str = ""
+    
+    SMTP_HOST: str = "smtp.example.com"
+    SMTP_PORT: int = 587
+    SMTP_USER: str ="example@gmail.com"
+    SMTP_PASSWORD: str = "your-email-password"
+    FROM_EMAIL: str = "service@example.com"
+    
+    FRONTEND_URL: str = "http://localhost:3000"
+    BACKEND_URL: str = "http://localhost:8000"
+    
+    
+    
     model_config = SettingsConfigDict(
-        env_file=".env",
+               env_file=".env",
         env_file_encoding="utf-8",
         case_sensitive=True,
         extra="ignore"

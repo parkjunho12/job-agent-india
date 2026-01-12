@@ -57,9 +57,10 @@ app.add_middleware(
         "http://localhost:3000",
         "https://jobagent-career.com",
         "https://www.jobagent-career.com",
-        "chrome-extension://gaheedodgcbgnfehnoknpdfodiihlncb"
+        "chrome-extension://gaheedodgcbgnfehnoknpdfodiihlncb",
+        "http://localhost:5173" 
     ],
-    allow_credentials=True,
+    allow_credentials=True, 
     allow_methods=["*"],
     allow_headers=["*"],
 )

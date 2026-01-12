@@ -14,7 +14,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U job_agent"]
+      test: ["CMD-SHELL", "pg_isready -U job_agent -d job_agent_db"]
       interval: 10s
       timeout: 5s
       retries: 20
@@ -25,11 +25,28 @@ services:
       context: ./backend
       dockerfile: Dockerfile.dev
     container_name: job_agent_backend
+    env_file:
+      - .env
     environment:
-      - DATABASE_URL=postgresql://job_agent:dev_password_change_in_prod@postgres:5432/job_agent_db
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
-      - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-in-production}
-      - DEBUG=True
+      DATABASE_URL: ${DATABASE_URL}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_MODEL: ${OPENAI_MODEL}
+      OPENAI_MAX_TOKENS: ${OPENAI_MAX_TOKENS}
+      SECRET_KEY: ${SECRET_KEY}
+      ALGORITHM: ${ALGORITHM}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES}
+      REFRESH_TOKEN_EXPIRE_DAYS: ${REFRESH_TOKEN_EXPIRE_DAYS}
+      FRONTEND_URL: ${FRONTEND_URL}
+      BACKEND_URL: ${BACKEND_URL}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      FROM_EMAIL: ${FROM_EMAIL}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET}
     ports:
       - "8000:8000"
     volumes:
@@ -46,8 +63,12 @@ services:
       context: ./frontend
       dockerfile: Dockerfile.dev
     container_name: job_agent_frontend
+    env_file:
+      - .env
     environment:
-      - VITE_API_URL=http://localhost:8000/api/v1
+      - VITE_API_URL=${VITE_API_URL}
+      - VITE_GITHUB_CLIENT_ID=${VITE_GITHUB_CLIENT_ID}
+      - VITE_GOOGLE_CLIENT_ID=${VITE_GOOGLE_CLIENT_ID}
     ports:
       - "3000:3000"
     volumes:
