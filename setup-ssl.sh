@@ -183,9 +183,9 @@ if [ -f .env ]; then
     
     # Add CORS if not present
     if ! grep -q "CORS_ORIGINS" .env; then
-        echo "CORS_ORIGINS=[https://jobagent-career.com,https://www.jobagent-career.com,chrome-extension://gaheedodgcbgnfehnoknpdfodiihlncb]" >> .env
+        echo "CORS_ORIGINS=["https://jobagent-career.com","https://www.jobagent-career.com","chrome-extension://gaheedodgcbgnfehnoknpdfodiihlncb"]" >> .env
     else
-        sed -i 's|CORS_ORIGINS=.*|CORS_ORIGINS=[https://jobagent-career.com,https://www.jobagent-career.com,cchrome-extension://gaheedodgcbgnfehnoknpdfodiihlncb]|g' .env
+        sed -i 's|CORS_ORIGINS=.*|CORS_ORIGINS=["https://jobagent-career.com","https://www.jobagent-career.com","chrome-extension://gaheedodgcbgnfehnoknpdfodiihlncb"]|g' .env
     fi
     
     echo "✅ .env updated"
