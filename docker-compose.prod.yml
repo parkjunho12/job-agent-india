@@ -46,7 +46,7 @@ services:
       dockerfile: Dockerfile.prod
     container_name: job-agent-backend
     env_file:
-    - .env
+      - .env
     environment:
       DATABASE_URL: ${DATABASE_URL}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
@@ -89,8 +89,12 @@ services:
       args:
         - VITE_API_URL=https://api.jobagent-career.com/api/v1
     container_name: job-agent-frontend
+    env_file:
+      - .env
     environment:
-      - VITE_API_URL=https://api.jobagent-career.com/api/v1
+      - VITE_API_URL=${VITE_API_URL}
+      - VITE_GITHUB_CLIENT_ID=${VITE_GITHUB_CLIENT_ID}
+      - VITE_GOOGLE_CLIENT_ID=${VITE_GOOGLE_CLIENT_ID}
     expose:
       - "3000"
     restart: unless-stopped
