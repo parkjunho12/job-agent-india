@@ -72,6 +72,7 @@ services:
       - postgres  # 이 줄 추가!
     expose:
       - "8000"
+    restart: unless-stopped
     networks:
       - job-agent-network
     healthcheck:
@@ -108,4 +109,3 @@ networks:
 volumes:
   static_volume:
   postgres_data:
-  
