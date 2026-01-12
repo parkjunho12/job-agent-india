@@ -147,10 +147,16 @@ async def register(user_data: UserCreate, request: Request, db: Session = Depend
 
 @router.post("/verify-email")
 async def verify_email(data: EmailVerificationConfirm, db: Session = Depends(get_db)):
+    now = datetime.now(timezone.utc)
     user = db.query(User).filter(User.verification_token == data.token).first()
     
-    now = datetime.utcnow()
-    if (not user) or (user.verification_token_expires is None) or (user.verification_token_expires < now):
+    expires = user.verification_token_expires if user else None
+    if expires is not None and expires.tzinfo is None:
+        # DB에서 naive로 들어온 경우 UTC로 간주해서 aware로 변환
+        expires = expires.replace(tzinfo=timezone.utc)
+    
+    
+    if (not user) or (expires is None) or (expires < now):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Invalid or expired token")
     
     user.email_verified = True
@@ -385,10 +391,15 @@ async def forgot_password(data: PasswordResetRequest, request: Request, db: Sess
 
 @router.post("/reset-password")
 async def reset_password(data: PasswordResetConfirm, db: Session = Depends(get_db)):
+    now = datetime.now(timezone.utc)
     user = db.query(User).filter(User.reset_token == data.token).first()
     
-    now = datetime.utcnow()
-    if (not user) or (user.reset_token_expires is None) or (user.reset_token_expires < now):
+    expires = user.reset_token_expires if user else None
+    if expires is not None and expires.tzinfo is None:
+        # DB에서 naive로 들어온 경우 UTC로 간주해서 aware로 변환
+        expires = expires.replace(tzinfo=timezone.utc)
+    
+    if (not user) or (expires is None) or (expires < now):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Invalid or expired token")
     
     user.hashed_password = hash_password(data.new_password)
