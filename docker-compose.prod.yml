@@ -108,3 +108,4 @@ networks:
 volumes:
   static_volume:
   postgres_data:
+  
