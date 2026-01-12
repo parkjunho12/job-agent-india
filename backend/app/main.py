@@ -53,13 +53,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "https://jobagent-career.com",
-        "https://www.jobagent-career.com",
-        "chrome-extension://gaheedodgcbgnfehnoknpdfodiihlncb",
-        "http://localhost:5173" 
-    ],
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True, 
     allow_methods=["*"],
     allow_headers=["*"],
