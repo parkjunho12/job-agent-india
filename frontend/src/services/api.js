@@ -305,4 +305,49 @@ export const automationApi = {
     }),
 }
 
+// ============================================
+// Billing API
+// ============================================
+
+export const billingApi = {
+  // Get available plans
+  getPlans: () => api.get('/billing/plans'),
+  
+  // Get current subscription
+  getSubscription: () => api.get('/billing/subscription'),
+  
+  // Get usage stats
+  getUsage: () => api.get('/billing/usage'),
+  
+  // Get credits
+  getCredits: () => api.get('/billing/credits'),
+  
+  // Check if can analyze
+  canAnalyze: () => api.get('/billing/can-analyze'),
+  
+  // Buy credits (one-time payment)
+  buyCredit: (quantity = 1) => 
+    api.post('/billing/buy-credit', null, { params: { quantity } }),
+  
+  // Subscribe to Basic
+  subscribeBasic: () => api.post('/billing/subscribe-basic'),
+  
+  // Subscribe to Pro
+  subscribePro: () => api.post('/billing/subscribe-pro'),
+  
+  // Cancel subscription
+  cancelSubscription: () => api.post('/billing/cancel'),
+  
+  // Resume subscription
+  resumeSubscription: () => api.post('/billing/resume'),
+  
+  // Get customer portal
+  getPortal: () => api.post('/billing/portal'),
+  
+  // Get payment history
+  getTransactions: (limit = 20) => 
+    api.get('/billing/transactions', { params: { limit } }),
+}
+
+
 export default api

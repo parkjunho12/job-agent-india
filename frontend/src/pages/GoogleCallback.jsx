@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { authApi } from '../services/api'
 import { Loader2, AlertCircle } from 'lucide-react'
@@ -8,8 +8,12 @@ export function GoogleCallback() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const [error, setError] = useState(null)
+  const calledRef = useRef(false)
   
   useEffect(() => {
+    if (calledRef.current) return
+    calledRef.current = true
+
     const code = searchParams.get('code')
     const errorParam = searchParams.get('error')
     
@@ -38,7 +42,6 @@ export function GoogleCallback() {
       // Redirect to dashboard
       navigate('/dashboard')
     } catch (error) {
-      console.error('Google OAuth error:', error)
       setError(error.response?.data?.detail || 'OAuth login failed')
       
       // Redirect to login with error after 2 seconds

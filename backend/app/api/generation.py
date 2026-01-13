@@ -13,6 +13,7 @@ from app.models import User, Job, Experience
 from app.core.answer_generator import AnswerGenerator
 from app.core.cv_matcher import CVMatcher
 from app.api.auth import get_current_user
+from app.services.usage_service import UsageService, QuotaExceededError
 
 router = APIRouter()
 

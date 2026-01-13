@@ -44,4 +44,5 @@ black==24.10.0
 flake8==7.1.1
 mypy==1.14.1
 
-argon2-cffi>=23.1.0
+passlib[argon2]
+stripe>=14.1.0

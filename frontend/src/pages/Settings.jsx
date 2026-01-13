@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../stores/authStore'
-import { authApi } from '../services/api'
+import { authApi, billingApi } from '../services/api'
 import { 
   User, Mail, CreditCard, Bell, Shield, LogOut, 
   Loader2, CheckCircle, AlertCircle, Save
@@ -67,6 +67,22 @@ function Settings() {
       showMessage('error', error.response?.data?.detail || 'Failed to change password')
     }
   })
+
+  // Add billing mutation
+  const billingMutation = useMutation({
+    mutationFn: ({ buyCredit, subscribeBasic, subscribePro }) => 
+      billingApi.updateBilling({ buyCredit, subscribeBasic, subscribePro }),
+    onSuccess: () => {
+      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' })
+      showMessage('success', 'Password changed successfully!')
+    },
+    onError: (error) => {
+      showMessage('error', error.response?.data?.detail || 'Failed to change password')
+    }
+  })
+
+
+
   
   const handleProfileUpdate = (e) => {
     e.preventDefault()

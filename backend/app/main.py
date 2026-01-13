@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 import logging
 
-from app.api import auth, jobs, applications, generation, automation, cv, experiences
+from app.api import auth, jobs, applications, generation, automation, cv, experiences, billings
 from app.db.database import engine
 from app.db.database import Base
 from app.utils.config import settings
@@ -102,6 +102,12 @@ app.include_router(
     auth.router,
     prefix="/api/v1/auth",
     tags=["Authentication"]
+)
+
+app.include_router(
+    billings.router,
+    prefix="/api/v1/billing",
+    tags=["Billing"]
 )
 
 app.include_router(

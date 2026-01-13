@@ -98,7 +98,12 @@ class Settings(BaseSettings):
     FRONTEND_URL: str = "http://localhost:3000"
     BACKEND_URL: str = "http://localhost:8000"
     
+    STRIPE_SECRET_KEY: str = "sk_test_..."
+    STRIPE_PUBLISHABLE_KEY: str = "pk_test_"
+    STRIPE_WEBHOOK_SECRET: str = "whsec_..."
     
+    STRIPE_PRICE_BASIC_MONTHLY: str = "price_basic_xxx"
+    STRIPE_PRICE_PRO_MONTHLY: str = "price_pro_xxx"
     
     model_config = SettingsConfigDict(
                env_file=".env",

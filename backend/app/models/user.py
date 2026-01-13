@@ -1,5 +1,5 @@
 """
-User model and schema
+User model and schema - Billing System Integrated
 """
 import enum
 
@@ -12,16 +12,10 @@ from typing import Optional
 from app.db.database import Base
 
 
-class UserTier(enum.Enum):
-    FREE = "free"
-    PRO = "pro"
-    ULTIMATE = "ultimate"        # 기존 모델 tier에 있었던 값
-    ENTERPRISE = "enterprise"    # enhanced 모델에 있었던 값
-
-
 class OAuthProvider(enum.Enum):
     GOOGLE = "google"
     GITHUB = "github"
+
 
 class User(Base):
     __tablename__ = "users"
@@ -34,27 +28,12 @@ class User(Base):
     # 패스워드 기반 계정은 필요, OAuth-only는 null 가능
     hashed_password = Column(String(255), nullable=True)
 
-    # 기존 모델은 nullable, enhanced는 not null이었음
-    # 운영에서는 full_name을 nullable로 두고, UI/비즈니스 레벨에서 보완하는 게 안전
     full_name = Column(String(255), nullable=True)
 
     # --- Account status ---
     is_active = Column(Boolean, default=True, nullable=False)
-
-    # 기존: is_verified, enhanced: email_verified
-    # 하나로 통합: email_verified 권장
     email_verified = Column(Boolean, default=False, nullable=False)
-
-    # 관리 권한
     is_superuser = Column(Boolean, default=False, nullable=False)
-
-    # --- Subscription / Tier ---
-    tier = Column(
-        Enum(UserTier, name="user_tier"),
-        default=UserTier.FREE,
-        nullable=False
-    )
-    subscription_expires = Column(DateTime(timezone=True), nullable=True)
 
     # --- Profile ---
     phone = Column(String(20), nullable=True)
@@ -91,48 +70,84 @@ class User(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 
-    # --- Relationships (기존 모델 유지) ---
+    # ============================================
+    # Relationships
+    # ============================================
+    
+    # Job Application Data
     experiences = relationship("Experience", back_populates="user", cascade="all, delete-orphan")
     jobs = relationship("Job", back_populates="user", cascade="all, delete-orphan")
     applications = relationship("Application", back_populates="user", cascade="all, delete-orphan")
+    
+    # Billing (NEW)
+    subscription = relationship(
+        "Subscription", 
+        back_populates="user", 
+        uselist=False,
+        cascade="all, delete-orphan"
+    )
+    
+    usage_counters = relationship(
+        "UsageCounter", 
+        back_populates="user", 
+        cascade="all, delete-orphan"
+    )
+    
+    transactions = relationship(
+        "Transaction", 
+        back_populates="user", 
+        cascade="all, delete-orphan"
+    )
 
-    # ---------- Business helpers ----------
+    # ============================================
+    # Business Logic (Updated for Billing)
+    # ============================================
+    
     @property
     def is_premium(self) -> bool:
-        # FREE면 무조건 false
-        if self.tier == UserTier.FREE:
+        """
+        Check if user has premium access
+        Based on subscription.plan (not old tier)
+        """
+        if not self.subscription:
             return False
-        # 만료가 없으면 premium(예: 영구권)
-        if self.subscription_expires is None:
-            return True
-        return self.subscription_expires > datetime.utcnow()
-
+        
+        from app.models.billing import PlanType
+        
+        # FREE and PAY_PER_JOB are not premium
+        if self.subscription.plan in [PlanType.FREE, PlanType.PAY_PER_JOB]:
+            return False
+        
+        # BASIC and PRO are premium
+        return True
+    
     def is_account_locked(self) -> bool:
+        """Check if account is locked"""
         if self.locked_until is None:
             return False
-        # timezone-aware stored. utcnow()는 naive라 운영에서는 timezone 통일 권장.
         return datetime.utcnow() < self.locked_until.replace(tzinfo=None)
-
-    def can_analyze_jd(self, current_count: int) -> bool:
-        limits = {
-            UserTier.FREE: 10,         # 기존 10
-            UserTier.PRO: 100,         # enhanced 100
-            UserTier.ULTIMATE: 500,    # 임의: 운영 정책 맞게 조정
-            UserTier.ENTERPRISE: 10**18
-        }
-        return current_count < limits.get(self.tier, 0)
-
-    def can_generate_application(self, current_count: int) -> bool:
-        limits = {
-            UserTier.FREE: 10,         # enhanced 10
-            UserTier.PRO: 500,         # enhanced 500
-            UserTier.ULTIMATE: 5000,   # 임의
-            UserTier.ENTERPRISE: 10**18
-        }
-        return current_count < limits.get(self.tier, 0)
+    
+    def get_plan(self) -> str:
+        """Get current plan name"""
+        if self.subscription:
+            return self.subscription.plan.value
+        return "free"
+    
+    def get_credits(self) -> int:
+        """Get current credit balance"""
+        if self.subscription:
+            return self.subscription.credits
+        return 0
+    
+    def __repr__(self):
+        plan = self.subscription.plan.value if self.subscription else "none"
+        return f"<User(id={self.id}, email={self.email}, plan={plan})>"
 
 
-# Pydantic schemas for API
+# ============================================
+# Pydantic Schemas
+# ============================================
+
 from pydantic import BaseModel, EmailStr, Field
 from typing import Optional
 
@@ -162,14 +177,44 @@ class UserUpdate(BaseModel):
 
 class UserResponse(UserBase):
     id: int
-    tier: str
     is_active: bool
     email_verified: bool
     created_at: datetime
-    is_premium: bool
+    
+    # Billing info (from subscription)
+    plan: Optional[str] = None
+    credits: Optional[int] = None
+    is_premium: bool = False
     
     class Config:
         from_attributes = True
+    
+    @classmethod
+    def from_user(cls, user):
+        """Create response from User with billing info"""
+        data = {
+            "id": user.id,
+            "email": user.email,
+            "full_name": user.full_name,
+            "phone": user.phone,
+            "location": user.location,
+            "linkedin_url": user.linkedin_url,
+            "portfolio_url": user.portfolio_url,
+            "is_active": user.is_active,
+            "email_verified": user.email_verified,
+            "created_at": user.created_at,
+            "is_premium": user.is_premium,
+        }
+        
+        # Add billing info if subscription exists
+        if user.subscription:
+            data["plan"] = user.subscription.plan.value
+            data["credits"] = user.subscription.credits
+        else:
+            data["plan"] = "free"
+            data["credits"] = 0
+        
+        return cls(**data)
 
 
 class Token(BaseModel):

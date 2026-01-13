@@ -13,6 +13,8 @@ from app.models.user import User
 from app.models.job import Job, JobCreate, JobUpdate, JobResponse, JobSummary
 from app.core.jd_parser import JDParser
 from app.api.auth import get_current_user
+from app.services.usage_service import UsageService, QuotaExceededError
+
 
 router = APIRouter()
 
@@ -25,16 +27,15 @@ async def create_job(
     """
     Create a new job and analyze it
     """
-    
+    usage_service = UsageService(db)
     # Check tier limits
-    existing_jobs = db.query(Job).filter(Job.user_id == current_user.id).count()
     
-    if not current_user.can_analyze_jd(existing_jobs):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Job analysis limit reached for your tier. Please upgrade."
-        )
+    can_analyze, reason, details = usage_service.can_analyze_job(current_user)
     
+    if not can_analyze:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=reason)
+    
+    usage_service.record_analysis(current_user.id)
     # Create job record
     job = Job(
         user_id=current_user.id,

@@ -1,5 +1,5 @@
 """
-Authentication API - Unified User Model
+Authentication API - Integrated with Billing System
 backend/app/api/auth.py
 """
 
@@ -7,11 +7,10 @@ from fastapi import APIRouter, Depends, HTTPException, status, Response, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta, timezone
-from typing import Optional
 from pydantic import BaseModel, EmailStr, field_validator
 
 from app.db.database import get_db
-from app.models.user import User, UserCreate, UserResponse, Token, UserTier, OAuthProvider
+from app.models.user import User, UserCreate, UserResponse, Token, OAuthProvider
 from app.core.security import (
     verify_password, hash_password,
     create_access_token, create_refresh_token, decode_token,
@@ -20,6 +19,7 @@ from app.core.security import (
 )
 from app.services.email_service import email_service
 from app.services.oauth_service import oauth_service
+from app.services.usage_service import UsageService
 
 router = APIRouter()
 security = HTTPBearer()
@@ -131,18 +131,21 @@ async def register(user_data: UserCreate, request: Request, db: Session = Depend
         full_name=user_data.full_name,
         email_verified=False,
         verification_token=verification_token,
-        verification_token_expires=verification_expires,
-        tier=UserTier.FREE
+        verification_token_expires=verification_expires
     )
     
     db.add(user)
     db.commit()
     db.refresh(user)
     
+    usage_service = UsageService(db)
+    usage_service.get_or_create_subscription(user.id)
+    db.refresh(user)
+    
     rate_limiter.record_attempt(f"register:{client_ip}")
     email_service.send_verification_email(user.email, verification_token, user.full_name or "User")
     
-    return user
+    return UserResponse.from_user(user)
 
 
 @router.post("/verify-email")
@@ -152,9 +155,7 @@ async def verify_email(data: EmailVerificationConfirm, db: Session = Depends(get
     
     expires = user.verification_token_expires if user else None
     if expires is not None and expires.tzinfo is None:
-        # DB에서 naive로 들어온 경우 UTC로 간주해서 aware로 변환
         expires = expires.replace(tzinfo=timezone.utc)
-    
     
     if (not user) or (expires is None) or (expires < now):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Invalid or expired token")
@@ -229,6 +230,10 @@ async def login(user_data: UserLogin, request: Request, response: Response, db: 
     user.last_login = datetime.now(timezone.utc)
     db.commit()
     
+    usage_service = UsageService(db)
+    usage_service.get_or_create_subscription(user.id)
+    db.refresh(user)
+    
     access_token = create_access_token({"sub": str(user.id)})
     refresh_token = create_refresh_token({"sub": str(user.id)})
     
@@ -244,7 +249,7 @@ async def login(user_data: UserLogin, request: Request, response: Response, db: 
     return {
         "access_token": access_token,
         "token_type": "bearer",
-        "user": UserResponse.model_validate(user)
+        "user": UserResponse.from_user(user)
     }
 
 
@@ -278,13 +283,22 @@ async def oauth_google(data: OAuthLoginRequest, response: Response, db: Session 
             oauth_id=user_info["id"],
             oauth_picture=user_info.get("picture"),
             hashed_password=None,
-            last_login=datetime.now(timezone.utc),
-            tier=UserTier.FREE
+            last_login=datetime.now(timezone.utc)
         )
         db.add(user)
         db.commit()
         db.refresh(user)
+        
+        usage_service = UsageService(db)
+        usage_service.get_or_create_subscription(user.id)
+        db.refresh(user)
+        
         email_service.send_welcome_email(user.email, user.full_name or "User")
+    
+    if not user.subscription:
+        usage_service = UsageService(db)
+        usage_service.get_or_create_subscription(user.id)
+        db.refresh(user)
     
     access_token = create_access_token({"sub": str(user.id)})
     refresh_token = create_refresh_token({"sub": str(user.id)})
@@ -301,7 +315,7 @@ async def oauth_google(data: OAuthLoginRequest, response: Response, db: Session 
     return {
         "access_token": access_token,
         "token_type": "bearer",
-        "user": UserResponse.model_validate(user)
+        "user": UserResponse.from_user(user)
     }
 
 
@@ -335,13 +349,22 @@ async def oauth_github(data: OAuthLoginRequest, response: Response, db: Session 
             oauth_id=user_info["id"],
             oauth_picture=user_info.get("avatar_url"),
             hashed_password=None,
-            last_login=datetime.now(timezone.utc),
-            tier=UserTier.FREE
+            last_login=datetime.now(timezone.utc)
         )
         db.add(user)
         db.commit()
         db.refresh(user)
+        
+        usage_service = UsageService(db)
+        usage_service.get_or_create_subscription(user.id)
+        db.refresh(user)
+        
         email_service.send_welcome_email(user.email, user.full_name or "User")
+    
+    if not user.subscription:
+        usage_service = UsageService(db)
+        usage_service.get_or_create_subscription(user.id)
+        db.refresh(user)
     
     access_token = create_access_token({"sub": str(user.id)})
     refresh_token = create_refresh_token({"sub": str(user.id)})
@@ -358,7 +381,7 @@ async def oauth_github(data: OAuthLoginRequest, response: Response, db: Session 
     return {
         "access_token": access_token,
         "token_type": "bearer",
-        "user": UserResponse.model_validate(user)
+        "user": UserResponse.from_user(user)
     }
 
 
@@ -396,7 +419,6 @@ async def reset_password(data: PasswordResetConfirm, db: Session = Depends(get_d
     
     expires = user.reset_token_expires if user else None
     if expires is not None and expires.tzinfo is None:
-        # DB에서 naive로 들어온 경우 UTC로 간주해서 aware로 변환
         expires = expires.replace(tzinfo=timezone.utc)
     
     if (not user) or (expires is None) or (expires < now):
@@ -413,7 +435,11 @@ async def reset_password(data: PasswordResetConfirm, db: Session = Depends(get_d
 
 
 @router.post("/change-password")
-async def change_password(data: ChangePasswordRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+async def change_password(
+    data: ChangePasswordRequest, 
+    current_user: User = Depends(get_current_user), 
+    db: Session = Depends(get_db)
+):
     if current_user.oauth_provider and not current_user.hashed_password:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "OAuth users cannot change password")
     
@@ -458,13 +484,26 @@ async def logout(response: Response):
 
 
 @router.get("/me", response_model=UserResponse)
-async def get_me(current_user: User = Depends(get_current_user)):
-    return current_user
+async def get_me(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if not current_user.subscription:
+        usage_service = UsageService(db)
+        usage_service.get_or_create_subscription(current_user.id)
+        db.refresh(current_user)
+    
+    return UserResponse.from_user(current_user)
 
 
 @router.put("/me", response_model=UserResponse)
-async def update_profile(profile_data: dict, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    allowed_fields = ['full_name', 'phone', 'location', 'linkedin_url', 'portfolio_url', 'auto_fill_enabled', 'notification_enabled']
+async def update_profile(
+    profile_data: dict, 
+    current_user: User = Depends(get_current_user), 
+    db: Session = Depends(get_db)
+):
+    allowed_fields = [
+        'full_name', 'phone', 'location', 
+        'linkedin_url', 'portfolio_url', 
+        'auto_fill_enabled', 'notification_enabled'
+    ]
     
     for field, value in profile_data.items():
         if field in allowed_fields:
@@ -473,4 +512,4 @@ async def update_profile(profile_data: dict, current_user: User = Depends(get_cu
     db.commit()
     db.refresh(current_user)
     
-    return current_user
+    return UserResponse.from_user(current_user)
