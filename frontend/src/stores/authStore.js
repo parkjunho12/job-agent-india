@@ -92,21 +92,29 @@ export const useAuthStore = create(
           console.warn('⚠️ Extension not available')
         }
       },
+      updateBilling: (billing) => set((state) => ({
+        user: {
+          ...state.user,
+          plan: billing.plan,
+          credits: billing.credits
+        }
+      })),
       
       // Getters
       getToken: () => get().token,
       getUser: () => get().user,
       
       // Tier & Permissions
-      isFreeTier: () => get().user?.tier === 'free',
-      isProTier: () => get().user?.tier === 'pro',
-      isUltimateTier: () => get().user?.tier === 'ultimate',
-      isEnterpriseTier: () => get().user?.tier === 'enterprise',
+      isFreeTier: () => get().user?.plan === 'free',
+      isBasicTier: () => get().user?.plan === 'basic',
+      isProTier: () => get().user?.plan === 'pro',
+      isUltimateTier: () => get().user?.plan === 'ultimate',
+      isEnterpriseTier: () => get().user?.plan === 'enterprise',
       isPremium: () => {
-        const tier = get().user?.tier
+        const tier = get().user?.plan
         return tier && tier !== 'free'
       },
-      getTier: () => get().user?.tier || 'free',
+      getTier: () => get().user?.plan || 'free',
       
       // Email & OAuth
       isEmailVerified: () => get().user?.email_verified || false,
@@ -162,6 +170,6 @@ export const useAuthStore = create(
 export const selectUser = (state) => state.user
 export const selectToken = (state) => state.token
 export const selectIsAuthenticated = (state) => state.isAuthenticated
-export const selectTier = (state) => state.user?.tier || 'free'
+export const selectTier = (state) => state.user?.plan || 'free'
 export const selectIsEmailVerified = (state) => state.user?.email_verified || false
 export const selectIsOAuthUser = (state) => !!state.user?.oauth_provider

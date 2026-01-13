@@ -24,6 +24,7 @@ function Layout() {
     { name: 'Jobs', path: '/jobs', icon: Briefcase },
     { name: 'Applications', path: '/applications', icon: FileText },
     { name: 'Experiences', path: '/experiences', icon: User },
+    { name: 'Billing', path: '/billing', icon: Settings },
     { name: 'Settings', path: '/settings', icon: Settings },
   ]
   
@@ -56,17 +57,19 @@ function Layout() {
           {/* Tier Badge */}
           <div className="mt-3">
             <span className={`badge ${
-              user?.tier === 'free' ? 'badge-primary' :
-              user?.tier === 'pro' ? 'badge-success' : 
+              user?.plan === 'free' ? 'badge-primary' :
+              user?.plan === 'basic' ? 'badge-basic-primary' :
+              user?.plan === 'pro' ? 'badge-success' : 
               'bg-purple-100 text-purple-700'
             }`}>
-              {user?.tier?.toUpperCase() || 'FREE'} Plan
+              {user?.plan?.toUpperCase() || 'FREE'} Plan
             </span>
           </div>
         </div>
         
         {/* Navigation */}
         <nav className="p-4 space-y-1">
+          
           {navItems.map((item) => (
             <NavLink
               key={item.path}

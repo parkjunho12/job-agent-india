@@ -13,7 +13,6 @@ from app.models.billing import (
     get_plan_limits, SubscriptionStatus, TransactionType
 )
 
-from app.utils.config import settings
 
 class UsageService:
     """Service for managing usage and credits"""
@@ -116,33 +115,29 @@ class UsageService:
             "monthly_limit": limits.analyses_per_month
         }
         
-        # FREE: credit-based
         if plan == PlanType.FREE:
             if subscription.credits > 0:
                 return True, "Credit available", details
             else:
                 return False, "No credits. Upgrade to continue.", details
         
-        # PAY_PER_JOB: credit-based
         if plan == PlanType.PAY_PER_JOB:
             if subscription.credits > 0:
                 return True, "Credit available", details
             else:
                 return False, "No credits. Purchase more.", details
         
-        # BASIC: monthly quota (25/month)  🆕
         if plan == PlanType.BASIC:
             if counter.analyses_count < limits.analyses_per_month:
                 return True, "Monthly quota available", details
             else:
-                return False, f"Monthly limit reached (25 analyses)", details
+                return False, f"Monthly limit reached (25/month)", details
         
-        # PRO: monthly quota (100/month)
         if plan == PlanType.PRO:
             if counter.analyses_count < limits.analyses_per_month:
                 return True, "Monthly quota available", details
             else:
-                return False, f"Monthly limit reached (100 analyses)", details
+                return False, f"Monthly limit reached", details
         
         return False, "Unknown plan", details
     
@@ -207,9 +202,12 @@ class UsageService:
         subscription.plan = plan
         subscription.status = status
         
-        if plan == PlanType.PRO and old_plan != PlanType.PRO:
+        # Credit management based on plan changes
+        if plan in [PlanType.BASIC, PlanType.PRO] and old_plan not in [PlanType.BASIC, PlanType.PRO]:
+            # Upgrading to subscription plan: clear credits
             subscription.credits = 0
-        elif plan == PlanType.FREE and old_plan == PlanType.PRO:
+        elif plan == PlanType.FREE and old_plan in [PlanType.BASIC, PlanType.PRO]:
+            # Downgrading to free: give 3 credits
             subscription.credits = 3
         
         for key, value in kwargs.items():
@@ -238,10 +236,10 @@ class UsageService:
             }
         }
         
-        if plan == PlanType.PRO:
+        if plan in [PlanType.BASIC, PlanType.PRO]:
             stats["monthly_limit"] = limits.analyses_per_month
             stats["monthly_remaining"] = max(0, limits.analyses_per_month - counter.analyses_count)
-            stats["monthly_percentage"] = int((counter.analyses_count / limits.analyses_per_month) * 100)
+            stats["monthly_percentage"] = int((counter.analyses_count / limits.analyses_per_month) * 100) if limits.analyses_per_month > 0 else 0
         
         return stats
 

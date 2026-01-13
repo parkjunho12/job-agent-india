@@ -19,6 +19,7 @@ from app.models.billing import (
 from app.api.auth import get_current_user
 from app.services.stripe_service import stripe_service
 from app.services.usage_service import UsageService, QuotaExceededError
+
 from app.utils.config import settings
 
 router = APIRouter()
@@ -527,7 +528,20 @@ async def stripe_webhook(
                     description=f"{credits} Job Analysis Credit{'s' if credits > 1 else ''}"
                 )
                 
+                # 🔥 CRITICAL: Commit the changes!
+                db.commit()
+                
                 print(f"✅ Added {credits} credits to user {subscription.user_id}")
+        
+        elif session.mode == "subscription":
+            # Subscription checkout completed
+            # Note: The actual subscription details will come via customer.subscription.created
+            # Just log this for now
+            customer_id = session.customer
+            subscription_id = getattr(session, 'subscription', None)
+            
+            print(f"✅ Subscription checkout completed: customer={customer_id}, subscription={subscription_id}")
+            # The subscription.created event will handle the actual setup
     
     # ============================================
     # Handle Subscription Created
@@ -546,13 +560,15 @@ async def stripe_webhook(
                 basic_price_id = settings.STRIPE_PRICE_BASIC_MONTHLY
                 pro_price_id = settings.STRIPE_PRICE_PRO_MONTHLY
                 
+          
                 if price_id == basic_price_id:
                     plan = PlanType.BASIC
                 elif price_id == pro_price_id:
                     plan = PlanType.PRO
                 else:
                     plan = PlanType.FREE
-                
+                    
+               
                 # Update subscription
                 usage_service.update_subscription_plan(
                     user_id=subscription.user_id,
@@ -564,6 +580,9 @@ async def stripe_webhook(
                     current_period_end=subscription_data["current_period_end"],
                     cancel_at_period_end=subscription_data["cancel_at_period_end"]
                 )
+                
+                # 🔥 CRITICAL: Commit the changes!
+                db.commit()
                 
                 print(f"✅ User {subscription.user_id} subscribed to {plan.value}")
     
@@ -581,7 +600,7 @@ async def stripe_webhook(
             if subscription:
                 # Determine plan
                 price_id = subscription_data["price_id"]
-                basic_price_id = settings.TRIPE_PRICE_BASIC_MONTHLY
+                basic_price_id = settings.STRIPE_PRICE_BASIC_MONTHLY
                 pro_price_id = settings.STRIPE_PRICE_PRO_MONTHLY
                 
                 if price_id == basic_price_id:
@@ -602,6 +621,9 @@ async def stripe_webhook(
                     cancel_at_period_end=subscription_data["cancel_at_period_end"],
                     canceled_at=subscription_data["canceled_at"]
                 )
+                
+                # 🔥 CRITICAL: Commit the changes!
+                db.commit()
                 
                 print(f"✅ User {subscription.user_id} subscription updated")
     
@@ -624,6 +646,9 @@ async def stripe_webhook(
                     status=SubscriptionStatus.CANCELED,
                     credits=3
                 )
+                
+                # 🔥 CRITICAL: Commit the changes!
+                db.commit()
                 
                 print(f"✅ User {subscription.user_id} downgraded to FREE")
     
@@ -650,6 +675,9 @@ async def stripe_webhook(
                     description=f"{subscription.plan.value.title()} Plan - Monthly",
                     paid_at=payment_data["paid_at"]
                 )
+                
+                # 🔥 CRITICAL: Commit the changes!
+                db.commit()
                 
                 print(f"✅ Recorded payment for user {subscription.user_id}")
     

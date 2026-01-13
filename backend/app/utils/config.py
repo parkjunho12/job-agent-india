@@ -100,7 +100,7 @@ class Settings(BaseSettings):
     
     STRIPE_SECRET_KEY: str = "sk_test_..."
     STRIPE_PUBLISHABLE_KEY: str = "pk_test_"
-    STRIPE_WEBHOOK_SECRET: str = "whsec_..."
+    STRIPE_WEBHOOK_SECRET: str = "whsec_2c..."
     
     STRIPE_PRICE_BASIC_MONTHLY: str = "price_basic_xxx"
     STRIPE_PRICE_PRO_MONTHLY: str = "price_pro_xxx"

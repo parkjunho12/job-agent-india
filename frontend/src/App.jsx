@@ -21,6 +21,8 @@ import Applications from './pages/Applications'
 import ApplicationDetail from './pages/Applicationdetail'
 import Experiences from './pages/Experiences'
 import Settings from './pages/Settings'
+import Billing from './pages/Billing'
+import BillingSuccess from './pages/BillingSuccess'
 
 
 // Components
@@ -89,6 +91,8 @@ function App() {
             <Route path="/applications/:id" element={<ApplicationDetail />} />
             <Route path="/experiences" element={<Experiences />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/billing" element={<Billing />} />
+            <Route path="/billing/success" element={<BillingSuccess />} />
           </Route>
           
           {/* Catch all */}

@@ -1,5 +1,5 @@
 """
-Stripe Service - One-Time + Subscription Support
+Stripe Service - One-Time + Subscription Support (FIXED)
 backend/app/services/stripe_service.py
 """
 
@@ -224,20 +224,72 @@ class StripeService:
         except stripe.error.SignatureVerificationError:
             raise ValueError("Invalid signature")
     
+    def extract_price_id(self, subscription) -> str | None:
+        # StripeObject 경로
+        items = getattr(subscription, "items", None)
+        data = getattr(items, "data", None) if items else None
+
+        if data and len(data) > 0:
+            first = data[0]
+            price = getattr(first, "price", None)
+
+            # price가 Price 객체인 경우
+            if price and hasattr(price, "id") and getattr(price, "id", None):
+                return price.id
+
+            # price가 문자열인 경우 ("price_...")
+            if isinstance(price, str):
+                return price
+
+            # plan.id로도 들어오는 경우(레거시)
+            plan = getattr(first, "plan", None)
+            if plan and getattr(plan, "id", None):
+                return plan.id
+
+        # dict 경로(혹시 dict로 들어오는 경우)
+        try:
+            return subscription["items"]["data"][0]["price"]["id"]
+        except Exception:
+            pass
+
+        try:
+            price = subscription["items"]["data"][0].get("price")
+            if isinstance(price, str):
+                return price
+        except Exception:
+            pass
+
+        return None
+
+    
     def parse_subscription_from_event(self, event: stripe.Event) -> Optional[Dict]:
         """Parse subscription data from webhook event"""
+       
         if event.type.startswith("customer.subscription"):
             subscription = event.data.object
+            
+            # 🔥 SAFE: Get price_id from nested structure
+            price_id = self.extract_price_id(subscription)
+            
+            print(f"Parsing subscription from event: {price_id}")
+            # 🔥 SAFE: Handle timestamps with getattr
+            current_period_start_ts = getattr(subscription, 'current_period_start', None)
+            current_period_end_ts = getattr(subscription, 'current_period_end', None)
+            canceled_at_ts = getattr(subscription, 'canceled_at', None)
+            
+            current_period_start = datetime.fromtimestamp(current_period_start_ts) if current_period_start_ts else None
+            current_period_end = datetime.fromtimestamp(current_period_end_ts) if current_period_end_ts else None
+            canceled_at = datetime.fromtimestamp(canceled_at_ts) if canceled_at_ts else None
             
             return {
                 "subscription_id": subscription.id,
                 "customer_id": subscription.customer,
                 "status": subscription.status,
-                "current_period_start": datetime.fromtimestamp(subscription.current_period_start),
-                "current_period_end": datetime.fromtimestamp(subscription.current_period_end),
-                "cancel_at_period_end": subscription.cancel_at_period_end,
-                "canceled_at": datetime.fromtimestamp(subscription.canceled_at) if subscription.canceled_at else None,
-                "price_id": subscription["items"]["data"][0].price.id if subscription["items"]["data"] else None,
+                "current_period_start": current_period_start,
+                "current_period_end": current_period_end,
+                "cancel_at_period_end": getattr(subscription, 'cancel_at_period_end', False),
+                "canceled_at": canceled_at,
+                "price_id": price_id,
             }
         
         return None
@@ -266,16 +318,27 @@ class StripeService:
         if event.type.startswith("invoice."):
             invoice = event.data.object
             
-            return {
-                "type": "subscription",
-                "invoice_id": invoice.id,
-                "customer_id": invoice.customer,
-                "subscription_id": invoice.subscription,
-                "amount": invoice.amount_paid / 100,
-                "currency": invoice.currency,
-                "status": invoice.status,
-                "paid_at": datetime.fromtimestamp(invoice.status_transitions.paid_at) if invoice.status_transitions.paid_at else None,
-            }
+            # 🔥 SAFE: Check if subscription exists
+            subscription_id = getattr(invoice, 'subscription', None)
+            
+            # Only process subscription invoices
+            if subscription_id:
+                # 🔥 SAFE: Check if status_transitions exists
+                paid_at = None
+                if hasattr(invoice, 'status_transitions') and invoice.status_transitions:
+                    if hasattr(invoice.status_transitions, 'paid_at') and invoice.status_transitions.paid_at:
+                        paid_at = datetime.fromtimestamp(invoice.status_transitions.paid_at)
+                
+                return {
+                    "type": "subscription",
+                    "invoice_id": invoice.id,
+                    "customer_id": invoice.customer,
+                    "subscription_id": subscription_id,
+                    "amount": invoice.amount_paid / 100,
+                    "currency": invoice.currency,
+                    "status": invoice.status,
+                    "paid_at": paid_at,
+                }
         
         return None
 
