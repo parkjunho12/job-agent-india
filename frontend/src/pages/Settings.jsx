@@ -5,7 +5,7 @@ import { useAuthStore } from '../stores/authStore'
 import { authApi, billingApi } from '../services/api'
 import {
   User, Mail, CreditCard, Bell, Shield, LogOut,
-  Loader2, CheckCircle, AlertCircle, Save
+  Loader2, CheckCircle, AlertCircle, Save, Zap
 } from 'lucide-react'
 
 function Settings() {
@@ -47,13 +47,11 @@ function Settings() {
     setTimeout(() => setMessage({ type: '', text: '' }), 3000)
   }
 
-  // ----------------------------
-  // Queries: plans/subscription/usage
-  // ----------------------------
+  // Billing queries
   const plansQuery = useQuery({
     queryKey: ['billing', 'plans'],
     queryFn: billingApi.getPlans,
-    enabled: activeTab === 'billing', // billing 탭에서만 로드
+    enabled: activeTab === 'billing',
     staleTime: 60_000
   })
 
@@ -71,25 +69,18 @@ function Settings() {
     staleTime: 15_000
   })
 
-  // 안전한 정규화 (백엔드 응답 스키마가 약간 달라도 UI가 안 깨지게)
   const plans = useMemo(() => {
     const raw = plansQuery.data
-    // 가능한 케이스: { plans: [...] } 또는 그냥 [...]
     if (!raw || !raw.data) return []
     return raw.data.plans || []
   }, [plansQuery.data])
 
-  const subscription = subscriptionQuery.data || null
-  const usage = usageQuery.data || null
+  const subscription = subscriptionQuery.data?.data || null
+  const usage = usageQuery.data?.data || null
 
-  // UI 기준 현재 tier 결정: subscription > user
-  const currentTier = (subscription?.tier || user?.tier || 'free').toLowerCase()
+  const currentPlan = (subscription?.plan || user?.plan || 'free').toLowerCase()
 
-  // ----------------------------
   // Mutations
-  // ----------------------------
-
-  // Update profile mutation
   const updateProfileMutation = useMutation({
     mutationFn: (data) => authApi.updateProfile(data),
     onSuccess: (response) => {
@@ -103,7 +94,6 @@ function Settings() {
     }
   })
 
-  // Change password mutation
   const changePasswordMutation = useMutation({
     mutationFn: ({ currentPassword, newPassword }) =>
       authApi.changePassword(currentPassword, newPassword),
@@ -116,13 +106,10 @@ function Settings() {
     }
   })
 
-  // Billing mutations (요구사항 3개)
   const buyCreditMutation = useMutation({
-    mutationFn: (payload) => billingApi.buyCredit(payload),
+    mutationFn: (quantity) => billingApi.buyCredit(quantity),
     onSuccess: (data) => {
-      open(data.data.checkout_url, '_blank') 
-      queryClient.invalidateQueries({ queryKey: ['billing', 'usage'] })
-      showMessage('success', 'Credits purchased successfully!')
+      window.location.href = data.data.checkout_url
     },
     onError: (error) => {
       showMessage('error', error.response?.data?.detail || 'Failed to buy credits')
@@ -131,32 +118,18 @@ function Settings() {
 
   const subscribeBasicMutation = useMutation({
     mutationFn: () => billingApi.subscribeBasic(),
-    onSuccess: async (data) => {
-      open(data.data.checkout_url, '_blank') 
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['billing', 'subscription'] }),
-        queryClient.invalidateQueries({ queryKey: ['billing', 'usage'] }),
-        queryClient.invalidateQueries({ queryKey: ['billing', 'plans'] }),
-        queryClient.invalidateQueries({ queryKey: ['user'] }),
-      ])
-      showMessage('success', 'Subscription updated to Starter!')
+    onSuccess: (data) => {
+      window.location.href = data.data.checkout_url
     },
     onError: (error) => {
-      showMessage('error', error.response?.data?.detail || 'Failed to subscribe to Starter')
+      showMessage('error', error.response?.data?.detail || 'Failed to subscribe to Basic')
     }
   })
 
   const subscribeProMutation = useMutation({
     mutationFn: () => billingApi.subscribePro(),
-    onSuccess: async (data) => {
-      open(data.data.checkout_url, '_blank') 
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['billing', 'subscription'] }),
-        queryClient.invalidateQueries({ queryKey: ['billing', 'usage'] }),
-        queryClient.invalidateQueries({ queryKey: ['billing', 'plans'] }),
-        queryClient.invalidateQueries({ queryKey: ['user'] }),
-      ])
-      showMessage('success', 'Subscription updated to Pro!')
+    onSuccess: (data) => {
+      window.location.href = data.data.checkout_url
     },
     onError: (error) => {
       showMessage('error', error.response?.data?.detail || 'Failed to subscribe to Pro')
@@ -168,32 +141,18 @@ function Settings() {
     subscribeBasicMutation.isPending ||
     subscribeProMutation.isPending
 
-  // ----------------------------
-  // handleUpgrade (요구사항 4)
-  // ----------------------------
   const handleUpgrade = async (plan) => {
-    // plan이 문자열(tier)일 수도 있고 객체일 수도 있게 처리
-    const tier = (typeof plan === 'string' ? plan : (plan?.tier || plan?.id || '')).toLowerCase()
+    const planId = (typeof plan === 'string' ? plan : (plan?.id || '')).toLowerCase()
 
-    try {
-      if (tier === 'starter' || tier === 'basic') {
-        subscribeBasicMutation.mutate()
-        return
-      }
-      if (tier === 'pro') {
-        subscribeProMutation.mutate()
-        return
-      }
+    if (planId === 'basic') {
+      subscribeBasicMutation.mutate()
+    } else if (planId === 'pro') {
+      subscribeProMutation.mutate()
+    } else {
       showMessage('error', 'Unknown plan selected')
-    } catch (e) {
-      console.error(e)
-      showMessage('error', 'Failed to upgrade plan')
     }
   }
 
-  // ----------------------------
-  // Form handlers
-  // ----------------------------
   const handleProfileUpdate = (e) => {
     e.preventDefault()
     updateProfileMutation.mutate(profileData)
@@ -207,8 +166,8 @@ function Settings() {
       return
     }
 
-    if (passwordData.newPassword.length < 6) {
-      showMessage('error', 'Password must be at least 6 characters')
+    if (passwordData.newPassword.length < 8) {
+      showMessage('error', 'Password must be at least 8 characters')
       return
     }
 
@@ -230,15 +189,13 @@ function Settings() {
     { id: 'security', label: 'Security', icon: Shield },
   ]
 
-  // Usage 계산(요구사항 6)
-  const creditsRemaining = usage?.credits_remaining ?? usage?.credits ?? 0
-  const monthlyUsed = usage?.monthly_used ?? usage?.monthlyUsage ?? 0
-  const monthlyLimit = usage?.monthly_limit ?? usage?.monthlyLimit ?? null
+  const credits = subscription?.credits || 0
+  const monthlyUsed = usage?.analyses_this_month || 0
+  const monthlyLimit = usage?.monthly_limit || null
 
   const usagePct = (() => {
     if (!monthlyLimit || monthlyLimit <= 0) return null
-    const v = Math.min(100, Math.max(0, Math.round((monthlyUsed / monthlyLimit) * 100)))
-    return v
+    return Math.min(100, Math.max(0, Math.round((monthlyUsed / monthlyLimit) * 100)))
   })()
 
   return (
@@ -248,7 +205,6 @@ function Settings() {
         <p className="text-gray-600">Manage your account preferences</p>
       </div>
 
-      {/* Global Message */}
       {message.text && (
         <div className={`mb-6 rounded-lg p-4 flex items-start gap-3 ${
           message.type === 'success'
@@ -267,7 +223,6 @@ function Settings() {
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Sidebar */}
         <div className="lg:col-span-1">
           <div className="card">
             <nav className="space-y-1">
@@ -292,7 +247,6 @@ function Settings() {
           </div>
         </div>
 
-        {/* Content */}
         <div className="lg:col-span-3">
           {activeTab === 'profile' && (
             <div className="card">
@@ -341,9 +295,6 @@ function Settings() {
                     className="input w-full"
                     placeholder="e.g., London, UK"
                   />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Used for job matching and cover letter generation
-                  </p>
                 </div>
 
                 <button
@@ -371,47 +322,40 @@ function Settings() {
             <div className="card">
               <h2 className="text-xl font-bold text-gray-900 mb-6">Billing & Subscription</h2>
 
-              {/* Loading/Error */}
-              {(plansQuery.isLoading || subscriptionQuery.isLoading || usageQuery.isLoading) && (
+              {(plansQuery.isLoading || subscriptionQuery.isLoading) && (
                 <div className="flex items-center gap-2 text-gray-600 mb-6">
                   <Loader2 className="w-5 h-5 animate-spin" />
                   Loading billing data...
                 </div>
               )}
 
-              {(plansQuery.error || subscriptionQuery.error || usageQuery.error) && (
-                <div className="mb-6 rounded-lg p-4 bg-red-50 border border-red-200 text-red-800">
-                  Failed to load billing data. Please try again.
-                </div>
-              )}
-
-              {/* Current Plan Summary */}
               <div className="bg-gradient-to-r from-primary-50 to-success-50 rounded-lg p-6 mb-6 border border-primary-200">
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <p className="text-sm text-gray-600">Current Plan</p>
                     <p className="text-2xl font-bold text-gray-900 capitalize">
-                      {currentTier || 'Free'}
+                      {currentPlan === 'pay_per_job' ? 'Pay Per Job' : currentPlan}
                     </p>
                   </div>
                   <span className="badge badge-success">Active</span>
                 </div>
 
-                {/* Usage stats (요구사항 6) */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
                   <div>
                     <p className="text-sm text-gray-600">Credits</p>
-                    <p className="text-lg font-bold text-gray-900">{creditsRemaining}</p>
+                    <p className="text-lg font-bold text-gray-900">{credits}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600">Monthly Usage</p>
+                    <p className="text-sm text-gray-600">This Month</p>
                     <p className="text-lg font-bold text-gray-900">
                       {monthlyUsed}{monthlyLimit ? ` / ${monthlyLimit}` : ''}
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600">AI Generations</p>
-                    <p className="text-lg font-bold text-gray-900">Unlimited</p>
+                    <p className="text-sm text-gray-600">Remaining</p>
+                    <p className="text-lg font-bold text-gray-900">
+                      {monthlyLimit ? monthlyLimit - monthlyUsed : credits}
+                    </p>
                   </div>
                 </div>
 
@@ -423,7 +367,7 @@ function Settings() {
                     </div>
                     <div className="w-full h-2 bg-white/70 rounded-full overflow-hidden">
                       <div
-                        className="h-2 bg-primary-600 rounded-full"
+                        className="h-2 bg-primary-600 rounded-full transition-all"
                         style={{ width: `${usagePct}%` }}
                       />
                     </div>
@@ -431,22 +375,30 @@ function Settings() {
                 )}
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <button
-                    className="btn btn-secondary"
-                    disabled={buyCreditMutation.isPending}
-                    onClick={() => buyCreditMutation.mutate({ amount: 10 })}
-                    title="Example: buy 10 credits"
-                  >
-                    {buyCreditMutation.isPending ? 'Purchasing...' : 'Buy 10 Credits'}
-                  </button>
+                  {(currentPlan === 'free' || currentPlan === 'pay_per_job') && (
+                    <button
+                      className="btn btn-secondary flex items-center justify-center gap-2"
+                      disabled={buyCreditMutation.isPending}
+                      onClick={() => buyCreditMutation.mutate(1)}
+                    >
+                      {buyCreditMutation.isPending ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <>
+                          <Zap className="w-4 h-4" />
+                          Buy Credit ($2.99)
+                        </>
+                      )}
+                    </button>
+                  )}
 
-                  {currentTier === 'free' && (
+                  {currentPlan !== 'pro' && (
                     <button
                       className="btn btn-primary"
                       disabled={anyBillingPending}
                       onClick={() => handleUpgrade('pro')}
                     >
-                      Upgrade to Pro
+                      {anyBillingPending ? 'Processing...' : 'Upgrade to Pro'}
                     </button>
                   )}
                 </div>
@@ -454,84 +406,68 @@ function Settings() {
 
               <h3 className="font-semibold text-gray-900 mb-4">Available Plans</h3>
 
-              {/* 동적 렌드링 (요구사항 5) */}
               <div className="space-y-4">
                 {plans.map((p) => {
-                  const tier = (p.tier || p.id || '').toLowerCase()
-                  const isCurrent = tier === currentTier
+                  const planId = (p.id || '').toLowerCase()
+                  const isCurrent = planId === currentPlan
 
                   return (
                     <div
-                      key={p.id || p.tier}
+                      key={p.id}
                       className={`border rounded-lg p-6 transition-all ${
                         isCurrent
                           ? 'border-primary-500 bg-primary-50'
+                          : p.highlighted
+                          ? 'border-primary-300 bg-gradient-to-br from-primary-50 to-success-50'
                           : 'border-gray-200 hover:border-gray-300'
                       }`}
                     >
                       <div className="flex items-start justify-between mb-4">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-2">
-                            <h4 className="text-lg font-bold text-gray-900">
-                              {p.name || (tier ? tier[0].toUpperCase() + tier.slice(1) : 'Plan')}
-                            </h4>
+                            <h4 className="text-lg font-bold text-gray-900">{p.name}</h4>
+                            {p.badge && (
+                              <span className="badge bg-gradient-to-r from-primary-500 to-success-500 text-white text-xs">
+                                {p.badge}
+                              </span>
+                            )}
                             {isCurrent && (
                               <span className="badge badge-primary text-xs">Current</span>
                             )}
-                            {p.popular && (
-                              <span className="badge bg-gradient-to-r from-primary-500 to-success-500 text-white text-xs">
-                                Most Popular
-                              </span>
-                            )}
                           </div>
 
-                          <p className="text-sm text-gray-600 mb-4">
-                            {p.description || 'Plan details'}
-                          </p>
+                          <p className="text-sm text-gray-600 mb-4">{p.description}</p>
 
                           <ul className="space-y-2">
                             {(p.features || []).map((f, idx) => (
                               <li key={idx} className="flex items-center gap-2 text-sm text-gray-700">
-                                <CheckCircle className="w-4 h-4 text-success-600" />
+                                <CheckCircle className="w-4 h-4 text-success-600 flex-shrink-0" />
                                 {f}
                               </li>
                             ))}
-                            {(!p.features || p.features.length === 0) && (
-                              <li className="text-sm text-gray-600">
-                                No feature list provided by API.
-                              </li>
-                            )}
                           </ul>
                         </div>
 
-                        <div className="text-right">
+                        <div className="text-right ml-6">
                           <p className="text-3xl font-bold text-gray-900">
-                            {p.price === 0 || p.price === '0' ? '$0' : `$${p.price ?? '-'}`}
+                            ${p.price}
                           </p>
-                          <p className="text-sm text-gray-600">
-                            {p.interval ? `/${p.interval}` : '/month'}
-                          </p>
+                          <p className="text-sm text-gray-600">{p.period || '/month'}</p>
                         </div>
                       </div>
 
-                      {!isCurrent && (
+                      {!isCurrent && planId !== 'free' && planId !== 'pay_per_job' && (
                         <button
-                          className="btn btn-primary w-full"
+                          className="btn btn-primary w-full mt-4"
                           disabled={anyBillingPending}
                           onClick={() => handleUpgrade(p)}
                         >
-                          {anyBillingPending ? 'Processing...' : `Upgrade to ${p.name || tier}`}
+                          {p.cta || `Upgrade to ${p.name}`}
                         </button>
                       )}
                     </div>
                   )
                 })}
-
-                {plans.length === 0 && !plansQuery.isLoading && (
-                  <div className="text-gray-600">
-                    No plans available. Check your billing plans API response.
-                  </div>
-                )}
               </div>
             </div>
           )}
@@ -540,19 +476,15 @@ function Settings() {
             <div className="card">
               <h2 className="text-xl font-bold text-gray-900 mb-6">Notification Preferences</h2>
 
-              <p className="text-gray-600 mb-6">
-                Choose how you want to receive updates about your applications and job matches.
-              </p>
-
               <div className="space-y-4">
-                <div className="flex items-start justify-between p-4 border border-gray-200 rounded-lg hover:border-gray-300 transition-colors">
+                <div className="flex items-start justify-between p-4 border border-gray-200 rounded-lg">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
                       <Mail className="w-5 h-5 text-primary-600" />
                       <p className="font-medium text-gray-900">Email Notifications</p>
                     </div>
                     <p className="text-sm text-gray-600">
-                      Receive updates about applications, matches, and important account changes
+                      Receive updates about applications and matches
                     </p>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer ml-4">
@@ -562,18 +494,18 @@ function Settings() {
                       checked={notifications.email}
                       onChange={(e) => setNotifications({ ...notifications, email: e.target.checked })}
                     />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+                    <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:bg-primary-600 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
                   </label>
                 </div>
 
-                <div className="flex items-start justify-between p-4 border border-gray-200 rounded-lg hover:border-gray-300 transition-colors">
+                <div className="flex items-start justify-between p-4 border border-gray-200 rounded-lg">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
                       <Bell className="w-5 h-5 text-success-600" />
                       <p className="font-medium text-gray-900">Browser Notifications</p>
                     </div>
                     <p className="text-sm text-gray-600">
-                      Get instant alerts when you receive application updates
+                      Get instant alerts for application updates
                     </p>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer ml-4">
@@ -583,14 +515,8 @@ function Settings() {
                       checked={notifications.browser}
                       onChange={(e) => setNotifications({ ...notifications, browser: e.target.checked })}
                     />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+                    <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:bg-primary-600 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
                   </label>
-                </div>
-
-                <div className="mt-6">
-                  <button className="btn btn-primary">
-                    Save Preferences
-                  </button>
                 </div>
               </div>
             </div>
@@ -613,7 +539,6 @@ function Settings() {
                         value={passwordData.currentPassword}
                         onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
                         className="input w-full"
-                        placeholder="Enter current password"
                         required
                       />
                     </div>
@@ -626,12 +551,8 @@ function Settings() {
                         value={passwordData.newPassword}
                         onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
                         className="input w-full"
-                        placeholder="Enter new password"
                         required
                       />
-                      <p className="text-xs text-gray-500 mt-1">
-                        Must be at least 6 characters
-                      </p>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -642,7 +563,6 @@ function Settings() {
                         value={passwordData.confirmPassword}
                         onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
                         className="input w-full"
-                        placeholder="Confirm new password"
                         required
                       />
                     </div>
@@ -671,11 +591,6 @@ function Settings() {
                     <AlertCircle className="w-5 h-5 text-red-600" />
                     Danger Zone
                   </h3>
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-                    <p className="text-sm text-red-800 mb-2">
-                      <strong>Logout:</strong> You will need to sign in again to access your account.
-                    </p>
-                  </div>
                   <button
                     onClick={handleLogout}
                     className="btn btn-secondary text-red-600 hover:bg-red-50 flex items-center gap-2"
