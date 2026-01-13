@@ -4,6 +4,7 @@ import {
   LayoutDashboard, 
   Briefcase, 
   FileText, 
+  CreditCard,
   User, 
   Settings, 
   LogOut,
@@ -24,7 +25,7 @@ function Layout() {
     { name: 'Jobs', path: '/jobs', icon: Briefcase },
     { name: 'Applications', path: '/applications', icon: FileText },
     { name: 'Experiences', path: '/experiences', icon: User },
-    { name: 'Billing', path: '/billing', icon: Settings },
+    { name: 'Billing', path: '/billing', icon: CreditCard },
     { name: 'Settings', path: '/settings', icon: Settings },
   ]
   
