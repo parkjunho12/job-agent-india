@@ -92,6 +92,7 @@ export const useAuthStore = create(
           console.warn('⚠️ Extension not available')
         }
       },
+      
       updateBilling: (billing) => set((state) => ({
         user: {
           ...state.user,
