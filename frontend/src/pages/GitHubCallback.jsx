@@ -33,7 +33,7 @@ export function GitHubCallback() {
     const handleOAuthCallback = async (code) => {
       try {
         const redirectUri = `${window.location.origin}/auth/github/callback`
-        
+        console.log('Exchanging code for token with redirect URI:', redirectUri)          
         const response = await authApi.oauthGitHubLogin(code, redirectUri)
         
         // Store token
