@@ -568,7 +568,7 @@ async def stripe_webhook(
                 else:
                     plan = PlanType.FREE
                     
-               
+                
                 # Update subscription
                 usage_service.update_subscription_plan(
                     user_id=subscription.user_id,

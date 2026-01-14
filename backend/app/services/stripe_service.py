@@ -5,7 +5,7 @@ backend/app/services/stripe_service.py
 
 import stripe
 import os
-from typing import Optional, Dict
+from typing import Optional, Dict, Any
 from datetime import datetime
 
 from app.models.billing import PlanType
@@ -261,6 +261,32 @@ class StripeService:
 
         return None
 
+    def dig(self, obj: Any, path: list[Any]) -> Any:
+        cur = obj
+        for key in path:
+            if cur is None:
+                return None
+
+            # list index
+            if isinstance(cur, (list, tuple)):
+                try:
+                    idx = int(key)
+                except (TypeError, ValueError):
+                    return None
+                if idx < 0 or idx >= len(cur):
+                    return None
+                cur = cur[idx]
+                continue
+
+            # dict
+            if isinstance(cur, dict):
+                cur = cur.get(key)
+                continue
+
+            # attr (StripeObject)
+            cur = getattr(cur, str(key), None)
+
+        return cur
     
     def parse_subscription_from_event(self, event: stripe.Event) -> Optional[Dict]:
         """Parse subscription data from webhook event"""
@@ -271,11 +297,20 @@ class StripeService:
             # 🔥 SAFE: Get price_id from nested structure
             price_id = self.extract_price_id(subscription)
             
-            print(f"Parsing subscription from event: {price_id}")
+            
             # 🔥 SAFE: Handle timestamps with getattr
-            current_period_start_ts = getattr(subscription, 'current_period_start', None)
-            current_period_end_ts = getattr(subscription, 'current_period_end', None)
-            canceled_at_ts = getattr(subscription, 'canceled_at', None)
+            current_period_start_ts = (
+                self.dig(subscription, ["current_period_start"])
+                or self.dig(subscription, ["items", "data", 0, "current_period_start"])
+            )
+            current_period_end_ts = (
+                self.dig(subscription, ["current_period_end"])
+                or self.dig(subscription, ["items", "data", 0, "current_period_end"])
+            )
+            canceled_at_ts = (
+                self.dig(subscription, ["canceled_at"])
+                or self.dig(subscription, ["cancellation_details", "timestamp"])  # 혹시 커스텀 저장 시
+            )
             
             current_period_start = datetime.fromtimestamp(current_period_start_ts) if current_period_start_ts else None
             current_period_end = datetime.fromtimestamp(current_period_end_ts) if current_period_end_ts else None
@@ -293,10 +328,26 @@ class StripeService:
             }
         
         return None
+    def extract_subscription_id_from_invoice(self, invoice):
+        # Stripe 최신 invoice는 subscription이 여러 위치에 존재 가능
+        candidates = [
+            ["subscription"],  # 있으면 제일 좋음 (일부 API 버전/이벤트에서 존재)
+            ["parent", "subscription_details", "subscription"],  # 네 샘플에 존재
+            ["lines", "data", 0, "parent", "subscription_item_details", "subscription"],  # 네 샘플에 존재
+            ["lines", "data", 0, "parent", "subscription_item_details", "subscription_item"],  # 필요시
+        ]
+
+        for path in candidates:
+            val = self.dig(invoice, path)
+            if isinstance(val, str) and val.startswith("sub_"):
+                return val
+
+        return None
+    
     
     def parse_payment_from_event(self, event: stripe.Event) -> Optional[Dict]:
         """Parse payment data from webhook event"""
-        
+        print(f"Parsing payment from event: {event.type}")
         # Handle one-time payments
         if event.type == "checkout.session.completed":
             session = event.data.object
@@ -319,17 +370,21 @@ class StripeService:
             invoice = event.data.object
             
             # 🔥 SAFE: Check if subscription exists
-            subscription_id = getattr(invoice, 'subscription', None)
+            subscription_id = self.extract_subscription_id_from_invoice(invoice)
+        
+            if not subscription_id:
+                return None  # 또는 {"type": "non_subscription_invoice"} 등
             
-            # Only process subscription invoices
-            if subscription_id:
-                # 🔥 SAFE: Check if status_transitions exists
-                paid_at = None
-                if hasattr(invoice, 'status_transitions') and invoice.status_transitions:
-                    if hasattr(invoice.status_transitions, 'paid_at') and invoice.status_transitions.paid_at:
-                        paid_at = datetime.fromtimestamp(invoice.status_transitions.paid_at)
-                
-                return {
+            paid_at_ts = self.dig(invoice, ["status_transitions", "paid_at"])
+            paid_at = datetime.fromtimestamp(paid_at_ts)
+            
+            amount_paid = self.dig(invoice, ["amount_paid"]) or 0
+            currency = self.dig(invoice, ["currency"])
+            status = self.dig(invoice, ["status"])
+            invoice_id = self.dig(invoice, ["id"])
+            customer_id = self.dig(invoice, ["customer"])
+            
+            return {
                     "type": "subscription",
                     "invoice_id": invoice.id,
                     "customer_id": invoice.customer,
@@ -338,7 +393,7 @@ class StripeService:
                     "currency": invoice.currency,
                     "status": invoice.status,
                     "paid_at": paid_at,
-                }
+            }
         
         return None
 
