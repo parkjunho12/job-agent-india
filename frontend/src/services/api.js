@@ -350,4 +350,37 @@ export const billingApi = {
 }
 
 
+export const analysisApi = {
+  /**
+   * Run analysis (consumes quota)
+   * POST /analysis/{job_id}/analyze
+   */
+  analyzeJob: (jobId) =>
+    api.post(`/analysis/${jobId}/analyze`).then(res => res.data),
+
+  /**
+   * Get cached verdict (no quota)
+   * GET /analysis/{job_id}/verdict
+   */
+  getVerdict: (jobId) =>
+    api.get(`/analysis/${jobId}/verdict`).then(res => res.data),
+
+  /**
+   * Mark user decision
+   * decision: 'applied' | 'skipped' | 'saved'
+   * POST /analysis/{job_id}/mark-decision?decision=
+   */
+  markDecision: (jobId, decision) =>
+    api.post(`/analysis/${jobId}/mark-decision`, null, {
+      params: { decision }
+    }).then(res => res.data),
+
+  /**
+   * Get decision statistics
+   * GET /analysis/stats/decisions
+   */
+  getDecisionStats: () =>
+    api.get('/analysis/stats/decisions').then(res => res.data),
+}
+
 export default api

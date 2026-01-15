@@ -5,7 +5,7 @@ import { jobsApi, generationApi, applicationsApi, experiencesApi } from '../serv
 import { 
   ArrowLeft, ExternalLink, MapPin, Briefcase, Calendar, 
   Sparkles, FileText, Loader2, CheckCircle, AlertCircle,
-  Target, TrendingUp, Zap, Brain, X, Edit, Save, Plus, Trash2
+  Target, TrendingUp, Zap, Brain, X, Edit, Save, Plus, Trash2, Glasses
 } from 'lucide-react'
 
 function JobDetail() {
@@ -601,11 +601,25 @@ function JobDetail() {
               </div>
             </div>
           </button>
-          
+          <button 
+            onClick={() => navigate(`/jobs/${id}/analysis`)}
+            className="card hover:shadow-lg transition-all"
+          >
+            
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                <Glasses className="w-5 h-5 text-red-600" />
+              </div>
+              <div className="text-left">
+                <p className="font-bold text-gray-900">Analyze Match</p>
+                <p className="text-xs text-gray-600">⚡ Get verdict in 30 sec</p>
+              </div>
+            </div>
+          </button>
           <button 
             onClick={() => reanalyzeMutation.mutate()} 
             disabled={reanalyzeMutation.isPending} 
-            className="card hover:shadow-lg transition-all"
+             className="card hover:shadow-lg transition-all"
           >
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">

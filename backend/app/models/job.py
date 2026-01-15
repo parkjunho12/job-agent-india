@@ -2,14 +2,21 @@
 Job (JD) model and schema
 """
 
-from sqlalchemy import Column, Integer, String, DateTime, Text, ForeignKey, JSON, Boolean
+from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, Float, JSON, ForeignKey, Enum as SQLEnum
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from datetime import datetime
 from typing import Optional, List, Dict, Any
+import enum
 
 from app.db.database import Base
 from pydantic import BaseModel, HttpUrl
+
+class VerdictType(enum.Enum):
+    """Verdict types for job analysis"""
+    STRONG_MATCH = "strong_match"
+    BORDERLINE = "borderline"
+    HIGH_RISK = "high_risk"
 
 
 class Job(Base):
@@ -46,6 +53,14 @@ class Job(Base):
     requires_cover_letter = Column(Boolean, default=False)
     requires_portfolio = Column(Boolean, default=False)
     custom_questions = Column(JSON, default=[])  # List of application questions
+    
+    match_score = Column(Float, nullable=True)
+    ats_score = Column(Float, nullable=True)
+    verdict_type = Column(String(20), nullable=True)
+    user_decision = Column(String(20), nullable=True)
+    decision_at = Column(DateTime(timezone=True), nullable=True)
+    analysis_completed = Column(Boolean, default=False)
+    verdict_payload = Column(JSON, nullable=True)
     
     # Status
     status = Column(String(20), default="saved")  # saved, analyzing, analyzed, applied

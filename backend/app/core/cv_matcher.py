@@ -3,7 +3,7 @@ CV Matcher - Match user experiences to job requirements
 Uses OpenAI GPT for intelligent matching
 """
 
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 import logging
 from sqlalchemy.orm import Session
 
@@ -185,25 +185,139 @@ class CVMatcher:
         matched_exp_ids = [m.experience_id for m in matches[:limit]]
         
         return [e for e in experiences if e.id in matched_exp_ids]
+    
+    
+    def _fallback_profile(self, experiences: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        LLM 실패 시 최소한의 안전한 fallback.
+        - skills_used는 합치되, experience_years는 duration_months 기반으로만 산출.
+        """
+        skills = []
+        total_months = 0
+
+        for exp in experiences:
+            exp_skills = exp.get("skills_used") or []
+            if isinstance(exp_skills, list):
+                skills.extend([s for s in exp_skills if isinstance(s, str)])
+
+            dm = exp.get("duration_months")
+            if isinstance(dm, (int, float)) and dm > 0:
+                total_months += int(dm)
+
+        dedup_skills = sorted(list({s.strip() for s in skills if s.strip()}))
+        experience_years = total_months // 12
+
+        work_history = []
+        for exp in experiences:
+            # 최소한의 work_history만 구성
+            title = exp.get("title") or ""
+            company = exp.get("organization") or ""
+            dm = exp.get("duration_months") or 0
+            duration = ""
+            if isinstance(dm, (int, float)) and dm > 0:
+                dm = int(dm)
+                years = dm // 12
+                months = dm % 12
+                if years > 0 and months > 0:
+                    duration = f"{years} years {months} months"
+                elif years > 0:
+                    duration = f"{years} years"
+                else:
+                    duration = f"{months} months"
+
+            achievements = exp.get("achievements") or []
+            description = exp.get("description") or ""
+            responsibilities = []
+            if isinstance(achievements, list):
+                responsibilities.extend([a for a in achievements if isinstance(a, str) and a.strip()])
+            if isinstance(description, str) and description.strip():
+                responsibilities.append(description.strip())
+
+            # 너무 길면 줄이기
+            responsibilities = responsibilities[:6]
+
+            if title or company:
+                work_history.append({
+                    "title": title,
+                    "company": company,
+                    "duration": duration or "N/A",
+                    "responsibilities": responsibilities
+                })
+
+        return {
+            "skills": dedup_skills,
+            "experience_years": int(experience_years),
+            "education": None,
+            "work_history": work_history[:10]
+        }
+    
+    async def get_user_experiences(
+        self,
+        experiences: List[Experience],
+        db: Session = None
+    ) -> Dict[str, Any]:
+        
+        user_cv = {
+            "skills": ["Python", "JavaScript", "React", "Node.js"],
+            "experience_years": 3,
+            "education": "Bachelor's in Computer Science",
+            "work_history": [
+                {
+                    "title": "Software Engineer",
+                    "company": "Tech Corp",
+                    "duration": "2 years",
+                    "responsibilities": ["Built web apps", "API development"]
+                }
+            ]
+        }
+        
+        if not experiences:
+            logger.warning(f"No experiences to match for job")
+            return user_cv
+        
+        experiences_data = []
+        for exp in experiences:
+            experiences_data.append({
+                "id": exp.id,
+                "type": exp.type,
+                "title": exp.title,
+                "organization": exp.organization,
+                "skills_used": exp.skills_used or [],
+                "achievements": exp.achievements or [],
+                "description": exp.description or "",
+                "duration_months": exp.duration_months if hasattr(exp, 'duration_months') else 0
+            })
+        
+        try:
+            # Use OpenAI to match
+            profile = await self.openai.build_candidate_profile(experiences_data)
+            
+            return profile
+            
+        except Exception as e:
+            logger.error(f"Error user experiences: {e}")
+            
+            return self._fallback_profile(experiences_data)
+        
 
 
-def extract_keywords(text: str) -> List[str]:
-    """
-    Extract keywords from text
-    Simple implementation - can be enhanced with NLP
-    """
-    if not text:
-        return []
-    
-    # Remove common words
-    stop_words = {
-        'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for',
-        'of', 'with', 'by', 'from', 'as', 'is', 'was', 'are', 'were', 'been',
-        'be', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would',
-        'could', 'should', 'may', 'might', 'must', 'can'
-    }
-    
-    words = text.lower().split()
-    keywords = [w for w in words if w not in stop_words and len(w) > 2]
-    
-    return keywords
+    def extract_keywords(text: str) -> List[str]:
+        """
+        Extract keywords from text
+        Simple implementation - can be enhanced with NLP
+        """
+        if not text:
+            return []
+        
+        # Remove common words
+        stop_words = {
+            'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for',
+            'of', 'with', 'by', 'from', 'as', 'is', 'was', 'are', 'were', 'been',
+            'be', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would',
+            'could', 'should', 'may', 'might', 'must', 'can'
+        }
+        
+        words = text.lower().split()
+        keywords = [w for w in words if w not in stop_words and len(w) > 2]
+        
+        return keywords

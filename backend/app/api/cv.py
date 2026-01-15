@@ -185,58 +185,58 @@ async def parse_cv_with_ai(text: str, openai_service: OpenAIService) -> Dict[str
     Parse CV text using OpenAI to extract structured data
     """
     prompt = f"""
-You are a CV parsing assistant. Extract structured information from the following CV text.
+    You are a CV parsing assistant. Extract structured information from the following CV text.
 
-Return a JSON object with this structure:
-{{
-  "personal_info": {{
-    "name": "string or null",
-    "email": "string or null",
-    "phone": "string or null",
-    "location": "string or null"
-  }},
-  "work_experience": [
+    Return a JSON object with this structure:
     {{
-      "title": "Job Title",
-      "company": "Company Name",
-      "location": "Location",
-      "start_date": "YYYY-MM or YYYY",
-      "end_date": "YYYY-MM or YYYY or Present",
-      "is_current": boolean,
-      "description": "Brief description",
-      "achievements": ["achievement 1", "achievement 2"],
-      "skills": ["skill1", "skill2"]
+    "personal_info": {{
+        "name": "string or null",
+        "email": "string or null",
+        "phone": "string or null",
+        "location": "string or null"
+    }},
+    "work_experience": [
+        {{
+        "title": "Job Title",
+        "company": "Company Name",
+        "location": "Location",
+        "start_date": "YYYY-MM or YYYY",
+        "end_date": "YYYY-MM or YYYY or Present",
+        "is_current": boolean,
+        "description": "Brief description",
+        "achievements": ["achievement 1", "achievement 2"],
+        "skills": ["skill1", "skill2"]
+        }}
+    ],
+    "education": [
+        {{
+        "degree": "Degree Name",
+        "institution": "University Name",
+        "location": "Location",
+        "start_date": "YYYY-MM or YYYY",
+        "end_date": "YYYY-MM or YYYY",
+        "description": "Brief description"
+        }}
+    ],
+    "projects": [
+        {{
+        "title": "Project Name",
+        "organization": "Organization or Personal",
+        "start_date": "YYYY-MM or YYYY",
+        "end_date": "YYYY-MM or YYYY",
+        "description": "Brief description",
+        "skills": ["skill1", "skill2"]
+        }}
+    ],
+    "skills": ["skill1", "skill2", "skill3"],
+    "certifications": ["cert1", "cert2"]
     }}
-  ],
-  "education": [
-    {{
-      "degree": "Degree Name",
-      "institution": "University Name",
-      "location": "Location",
-      "start_date": "YYYY-MM or YYYY",
-      "end_date": "YYYY-MM or YYYY",
-      "description": "Brief description"
-    }}
-  ],
-  "projects": [
-    {{
-      "title": "Project Name",
-      "organization": "Organization or Personal",
-      "start_date": "YYYY-MM or YYYY",
-      "end_date": "YYYY-MM or YYYY",
-      "description": "Brief description",
-      "skills": ["skill1", "skill2"]
-    }}
-  ],
-  "skills": ["skill1", "skill2", "skill3"],
-  "certifications": ["cert1", "cert2"]
-}}
 
-CV Text:
-{text}
+    CV Text:
+    {text}
 
-Return ONLY the JSON object, no additional text.
-"""
+    Return ONLY the JSON object, no additional text.
+    """
     
     try:
         response = await openai_service.chat_completion(

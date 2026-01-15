@@ -8,7 +8,8 @@ import {
   User, 
   Settings, 
   LogOut,
-  Sparkles 
+  Sparkles,
+  ChartColumnStacked
 } from 'lucide-react'
 
 function Layout() {
@@ -23,6 +24,7 @@ function Layout() {
   const navItems = [
     { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
     { name: 'Jobs', path: '/jobs', icon: Briefcase },
+    { name: 'Stats', path: '/stats', icon: ChartColumnStacked },
     { name: 'Applications', path: '/applications', icon: FileText },
     { name: 'Experiences', path: '/experiences', icon: User },
     { name: 'Billing', path: '/billing', icon: CreditCard },

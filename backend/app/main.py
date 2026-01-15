@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 import logging
 
-from app.api import auth, jobs, applications, generation, automation, cv, experiences, billings
+from app.api import auth, jobs, applications, generation, automation, cv, experiences, billings, analysis
 from app.db.database import engine
 from app.db.database import Base
 from app.utils.config import settings
@@ -142,6 +142,12 @@ app.include_router(
 app.include_router(
     cv.router,
     tags=["CV Upload"]
+)
+
+app.include_router(
+    analysis.router,
+    prefix="/api/v1/analysis",
+    tags=["analysis"]
 )
 
 
