@@ -56,8 +56,6 @@ function CVSetupWizard({ onComplete, onSkip }) {
             <CVUpload 
               onComplete={() => {
                 queryClient.invalidateQueries(['experiences'])
-                console.log('queryData:', queryData)
-                console.log('queryClient data:', queryClient.getQueryData(['experiences']))
                 const experiences = queryClient.getQueryData(['experiences'])?.data || queryData?.data || []
                 setExperiences(experiences)
                 setStep(2)
