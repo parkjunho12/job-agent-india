@@ -9,7 +9,7 @@ import {
   Zap, ArrowRight, Target, User, AlertCircle 
 } from 'lucide-react'
 import WelcomeModal from '../components/WelcomeModal'
-import CVSetupWizard from '../components/CVSetupWizard'
+import CVSetupWizard from '../components/CVSetupWizards'
 import OnboardingChecklist from '../components/OnboardingChecklist'
 
 function Dashboard() {
