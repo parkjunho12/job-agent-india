@@ -530,7 +530,7 @@ function ErrorMessage({ error, onClose }) {
                   <strong>Free Plan Limits:</strong>
                 </p>
                 <ul className="text-sm text-gray-600 space-y-1">
-                  <li>• 3 saved jobs</li>
+                  <li>• 3 saved jobs per month</li>
                   <li>• 5 AI-generated applications per month</li>
                   <li>• Basic job analysis</li>
                 </ul>

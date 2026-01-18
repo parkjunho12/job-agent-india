@@ -43,6 +43,7 @@ function Dashboard() {
   
   const experiences = experiencesData?.data || []
   const hasExperience = experiences.length > 0
+
   
   const stats = {
     totalJobs: jobs?.data?.length || 0,
@@ -61,7 +62,6 @@ function Dashboard() {
     const hasSeenWelcome = localStorage.getItem('welcome_completed')
     const hasSetupCV = localStorage.getItem('cv_setup_completed')
     
-    console.log('Onboarding Check:', { hasSeenWelcome, hasSetupCV, hasExperience })
     // Show welcome modal on first visit
     if (!hasSeenWelcome) {
       setShowWelcome(true)

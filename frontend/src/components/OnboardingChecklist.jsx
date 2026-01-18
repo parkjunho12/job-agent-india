@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { X, CheckCircle, Circle, ArrowRight } from 'lucide-react'
-import api from '../services/api'
+import { jobsApi, analysisApi } from '../services/api'
 
 /**
  * OnboardingChecklist Component
@@ -24,12 +24,12 @@ function OnboardingChecklist() {
   // Fetch user progress
   const { data: stats } = useQuery({
     queryKey: ['stats', 'decisions'],
-    queryFn: () => api.get('/analysis/stats/decisions').then(res => res.data)
+    queryFn: () => analysisApi.getDecisionStats()
   })
 
   const { data: jobsData } = useQuery({
     queryKey: ['jobs'],
-    queryFn: () => api.get('/jobs').then(res => res.data)
+    queryFn: () => jobsApi.list({ limit: 100 })
   })
 
   const jobs = jobsData?.data || []
