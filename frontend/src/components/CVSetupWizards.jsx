@@ -11,13 +11,16 @@ import { experiencesApi, cvApi } from '../services/api'
 function CVSetupWizard({ onComplete, onSkip }) {
   const [step, setStep] = useState(0) // 0: choose method, 1: input, 2: summary
   const [method, setMethod] = useState(null) // 'upload' | 'manual' | null
-    const [experiences, setExperiences] = useState([])
+  const [experiences, setExperiences] = useState([])
+
   const queryClient = useQueryClient()
-  const { data: queryData } = useQuery({
+  const { data: experiencesData } = useQuery({
     queryKey: ['experiences'],
     queryFn: () => experiencesApi.getAll()
   })
   
+  const queryData = experiencesData?.data || []
+  console.log('Fetched experiences:', queryData)
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -57,8 +60,7 @@ function CVSetupWizard({ onComplete, onSkip }) {
             <CVUpload 
               onComplete={() => {
                 queryClient.invalidateQueries(['experiences'])
-                const experiences = queryClient.getQueryData(['experiences'])?.data || queryData?.data || []
-                setExperiences(experiences)
+                setExperiences(queryData)
                 setStep(2)
               }}
               onBack={() => setStep(0)}
@@ -77,7 +79,7 @@ function CVSetupWizard({ onComplete, onSkip }) {
           
           {step === 2 && (
             <ProfileSummary 
-              experiences={experiences}
+              experiences={queryData.length > 0 ? queryData : experiences}
               onComplete={onComplete}
               onBack={() => setStep(1)}
             />

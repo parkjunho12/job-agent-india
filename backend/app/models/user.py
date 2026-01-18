@@ -3,7 +3,7 @@ User model and schema - Billing System Integrated
 """
 import enum
 
-from sqlalchemy import  Column, Integer, String, Boolean, DateTime, Enum, Text, ForeignKey
+from sqlalchemy import  Column, Integer, String, Boolean, DateTime, Enum, Text, ForeignKey, JSON
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from datetime import datetime
@@ -69,6 +69,12 @@ class User(Base):
     # --- Timestamps ---
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+    
+    all_skills = Column(JSON, default=[])
+    certifications = Column(JSON, default=[])
+    cv_filename = Column(String(255))
+    cv_uploaded_at = Column(DateTime)
+    cv_text = Column(Text)
 
     # ============================================
     # Relationships
@@ -138,6 +144,15 @@ class User(Base):
         if self.subscription:
             return self.subscription.credits
         return 0
+    
+    def update_skills_from_experiences(self, db):
+        """Aggregate all skills"""
+        all_skills = set()
+        for exp in self.experiences:
+            if exp.skills_used:
+                all_skills.update(exp.skills_used)
+        self.all_skills = sorted(list(all_skills))
+        db.commit()
     
     def __repr__(self):
         plan = self.subscription.plan.value if self.subscription else "none"

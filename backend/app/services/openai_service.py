@@ -8,6 +8,7 @@ from typing import Dict, Any, List, Optional
 import json
 import logging
 from openai import AsyncOpenAI, OpenAIError, RateLimitError
+from app.models.user import User
 
 from app.utils.config import settings
 
@@ -568,44 +569,60 @@ class OpenAIService:
 
     async def analyze_jd_match(
         self,
-        job_description: str,
-        user_cv: Dict[str, Any],
-        job_metadata: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        job_description: str, 
+        user_cv: str, 
+        job_metadata: Dict,
+        user: User  # NEW: Pass user object
+    ) -> Dict:
         """
-        Analyze job description match with user CV
-        Phase 2: Returns data for verdict calculation
-        
-        Args:
-            job_description: Full job description text
-            user_cv: User CV data (skills, experience, etc.)
-            job_metadata: Job metadata (title, company, requirements)
-            
-        Returns:
-            Match analysis with scores and gaps
+        Analyze job match using user's aggregated skills
         """
+        # Build user profile summary
+        user_profile = {
+            "all_skills": user.all_skills,  # Quick access!
+            "certifications": [c.get("name") for c in user.certifications],
+            "experiences": [
+                {
+                    "title": exp.title,
+                    "company": exp.organization,
+                    "duration_months": exp.duration_months,
+                    "key_skills": exp.skills_used
+                }
+                for exp in user.experiences
+            ]
+        }
         
-        # Build analysis prompt
-        prompt = f"""Analyze how well this candidate matches this job posting.
-
-        Job Title: {job_metadata.get('title', 'Unknown')}
-        Company: {job_metadata.get('company', 'Unknown')}
-
-        Job Description:
+        prompt = f"""
+        Analyze job match for this candidate.
+        
+        Job Requirements:
         {job_description}
-
+        
         Required Skills: {', '.join(job_metadata.get('required_skills', []))}
         Preferred Skills: {', '.join(job_metadata.get('preferred_skills', []))}
         Required Experience: {job_metadata.get('required_experience', 'Not specified')}
 
+        
         Candidate Profile:
         Skills: {', '.join(user_cv.get('skills', []))}
         Experience: {user_cv.get('experience_years', 0)} years
         Education: {user_cv.get('education', 'Not specified')}
 
+        
+        - Skills: {', '.join(user.all_skills[:30])}
+        - Certifications: {', '.join([c.get("name") for c in user.certifications])}
+        - Experience Summary: {len(user.experiences)} roles
+        
         Work History:
         {self._format_work_history(user_cv.get('work_history', []))}
 
+        User Profile Summary:
+        {json.dumps(user_profile, indent=2)}
+        
+        
+        Full CV:
+        {user_cv}
+        
         Provide a comprehensive match analysis with:
         1. Overall match score (0-100)
         2. ATS keyword match score (0-100)
@@ -650,6 +667,7 @@ class OpenAIService:
             "matched_keywords_list": ["JavaScript", "React", "Node.js"]
         }}
         }}
+
         """
         
         system_prompt = """You are an expert ATS and recruiter analyzer.
@@ -662,6 +680,7 @@ class OpenAIService:
         - Skill overlap
         - Seniority alignment
         Always return valid JSON."""
+
         
         try:
             response = await self.client.chat.completions.create(
@@ -746,11 +765,12 @@ AnthropicService = OpenAIService
 async def analyze_jd_match(
     job_description: str,
     user_cv: Dict[str, Any],
-    job_metadata: Dict[str, Any]
+    job_metadata: Dict[str, Any],
+    user: User  # NEW: Pass user object
 ) -> Dict[str, Any]:
     """
     Module-level function for backward compatibility
     Matches the import pattern: from app.services.openai_service import analyze_jd_match
     """
     service = OpenAIService()
-    return await service.analyze_jd_match(job_description, user_cv, job_metadata)
+    return await service.analyze_jd_match(job_description, user_cv, job_metadata, user)

@@ -77,7 +77,8 @@ async def create_job(
                 "required_skills": job.required_skills or [],
                 "preferred_skills": job.preferred_skills or [],
                 "required_experience": job.required_experience
-            }
+            },
+            user=current_user
         )
         
         # Calculate verdict

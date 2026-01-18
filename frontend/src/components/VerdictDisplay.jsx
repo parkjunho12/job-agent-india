@@ -1,4 +1,4 @@
-import { CheckCircle, AlertTriangle, XCircle, ArrowRight, Lock } from 'lucide-react'
+import { CheckCircle, AlertTriangle, XCircle, ArrowRight, Lock, Zap, Target } from 'lucide-react'
 
 /**
  * VerdictCard Component
@@ -69,17 +69,19 @@ function VerdictCard({ verdict, isPremium = false }) {
       </div>
 
       {/* Action Items */}
-      <div className="mb-6">
-        <h3 className="font-semibold text-gray-900 mb-3">Next Steps:</h3>
-        <ul className="space-y-2">
-          {verdict.actions && verdict.actions.map((action, idx) => (
-            <li key={idx} className="flex items-start gap-2">
-              <ArrowRight className={`w-5 h-5 ${style.iconColor} flex-shrink-0 mt-0.5`} />
-              <span className="text-gray-800">{action}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
+      {verdict.actions && verdict.actions.length > 0 && (
+        <div className="mb-6">
+          <h3 className="font-semibold text-gray-900 mb-3">Next Steps:</h3>
+          <ul className="space-y-2">
+            {verdict.actions.map((action, idx) => (
+              <li key={idx} className="flex items-start gap-2">
+                <ArrowRight className={`w-5 h-5 ${style.iconColor} flex-shrink-0 mt-0.5`} />
+                <span className="text-gray-800">{action}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* Apply Decision */}
       <div className={`p-4 bg-white rounded-lg border-2 ${style.border}`}>
@@ -142,7 +144,7 @@ function ATSAnalysisCard({ analysis }) {
       </div>
 
       <ul className="space-y-2">
-        {analysis.details.map((detail, idx) => (
+        {analysis.details && analysis.details.map((detail, idx) => (
           <li key={idx} className="flex items-start gap-2 text-sm text-gray-700">
             <span className={`${style.icon} mt-0.5`}>•</span>
             <span>{detail}</span>
@@ -191,7 +193,7 @@ function RecruiterAnalysisCard({ analysis }) {
       </div>
 
       <ul className="space-y-2">
-        {analysis.details.map((detail, idx) => (
+        {analysis.details && analysis.details.map((detail, idx) => (
           <li key={idx} className="flex items-start gap-2 text-sm text-gray-700">
             <span className={`${style.icon} mt-0.5`}>•</span>
             <span>{detail}</span>
@@ -221,24 +223,152 @@ function ExperienceAnalysisCard({ analysis }) {
       <h3 className="text-xl font-bold text-gray-900 mb-4">Experience Match</h3>
       <p className="text-gray-700 mb-4">{analysis.overall}</p>
 
-      <div className="space-y-3">
-        {analysis.key_areas.map((area, idx) => (
-          <div key={idx} className="flex items-center justify-between p-3 bg-white rounded-lg">
-            <div className="flex-1">
-              <p className="font-semibold text-gray-900">{area.area}</p>
-              {area.note && (
-                <p className="text-sm text-gray-600">{area.note}</p>
-              )}
+      {analysis.key_areas && analysis.key_areas.length > 0 && (
+        <div className="space-y-3">
+          {analysis.key_areas.map((area, idx) => (
+            <div key={idx} className="flex items-center justify-between p-3 bg-white rounded-lg">
+              <div className="flex-1">
+                <p className="font-semibold text-gray-900">{area.area}</p>
+                {area.note && (
+                  <p className="text-sm text-gray-600">{area.note}</p>
+                )}
+              </div>
+              <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                area.status === 'present' 
+                  ? 'bg-success-100 text-success-700'
+                  : 'bg-red-100 text-red-700'
+              }`}>
+                {area.status === 'present' ? '✓ Present' : '✗ Missing'}
+              </span>
             </div>
-            <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-              area.status === 'present' 
-                ? 'bg-success-100 text-success-700'
-                : 'bg-red-100 text-red-700'
-            }`}>
-              {area.status === 'present' ? '✓ Present' : '✗ Missing'}
-            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+/**
+ * Gap Details Card (Premium Feature)
+ * Shows what skills are missing and action items
+ */
+function GapDetailsCard({ gapDetails, actionItems }) {
+  if (!gapDetails || gapDetails.length === 0) return null
+
+  return (
+    <div className="bg-gradient-to-br from-orange-50 to-orange-100 border-2 border-orange-300 rounded-xl p-6">
+      <div className="flex items-center gap-3 mb-4">
+        <div className="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center">
+          <Target className="w-5 h-5 text-white" />
+        </div>
+        <h3 className="text-xl font-bold text-gray-900">
+          🎯 Gaps to Fix
+        </h3>
+      </div>
+
+      <div className="space-y-3 mb-6">
+        {gapDetails.map((gap, idx) => (
+          <div key={idx} className="bg-white rounded-lg p-4 border-2 border-orange-200">
+            <div className="flex items-start justify-between mb-2">
+              <div className="flex-1">
+                <h4 className="font-bold text-gray-900">{gap.skill}</h4>
+                <p className="text-sm text-gray-600">
+                  Required level: <span className="font-semibold">{gap.required_level}</span>
+                </p>
+              </div>
+              <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                gap.has_experience 
+                  ? 'bg-yellow-100 text-yellow-700'
+                  : 'bg-red-100 text-red-700'
+              }`}>
+                {gap.has_experience ? '⚠️ Weak' : '❌ Missing'}
+              </span>
+            </div>
+            {gap.note && (
+              <p className="text-sm text-gray-700 bg-orange-50 rounded p-2">
+                💡 {gap.note}
+              </p>
+            )}
           </div>
         ))}
+      </div>
+
+      {/* Action Items */}
+      {actionItems && actionItems.length > 0 && (
+        <div className="bg-white rounded-lg p-4 border-2 border-orange-300">
+          <h4 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
+            <Zap className="w-5 h-5 text-orange-600" />
+            Quick Fixes
+          </h4>
+          <ul className="space-y-2">
+            {actionItems.map((item, idx) => (
+              <li key={idx} className="flex items-start gap-2">
+                <ArrowRight className="w-4 h-4 text-orange-600 flex-shrink-0 mt-0.5" />
+                <span className="text-sm text-gray-700">{item}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  )
+}
+
+/**
+ * Custom Tips Card (Premium Feature)
+ */
+function CustomTipsCard({ tips }) {
+  if (!tips || tips.length === 0) return null
+
+  return (
+    <div className="bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-300 rounded-xl p-6">
+      <div className="flex items-center gap-3 mb-4">
+        <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
+          <Zap className="w-5 h-5 text-white" />
+        </div>
+        <h3 className="text-xl font-bold text-gray-900">
+          💡 Custom Tips for You
+        </h3>
+      </div>
+
+      <div className="space-y-3">
+        {tips.map((tip, idx) => (
+          <div key={idx} className="bg-white rounded-lg p-4 border-2 border-blue-200">
+            <div className="flex items-start gap-3">
+              <span className="text-blue-600 font-bold text-lg">{idx + 1}.</span>
+              <p className="text-gray-700 flex-1">{tip}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/**
+ * Cover Letter Available Card (Premium Feature)
+ */
+function CoverLetterCard({ available }) {
+  if (!available) return null
+
+  return (
+    <div className="bg-gradient-to-br from-success-50 to-success-100 border-2 border-success-300 rounded-xl p-6">
+      <div className="flex items-center gap-4">
+        <div className="w-12 h-12 bg-success-500 rounded-full flex items-center justify-center flex-shrink-0">
+          <CheckCircle className="w-6 h-6 text-white" />
+        </div>
+        <div className="flex-1">
+          <h3 className="text-lg font-bold text-gray-900 mb-1">
+            ✨ Custom Cover Letter Ready!
+          </h3>
+          <p className="text-sm text-gray-700">
+            A tailored cover letter has been generated for this job
+          </p>
+        </div>
+        <button className="btn btn-success flex items-center gap-2 whitespace-nowrap">
+          <CheckCircle className="w-4 h-4" />
+          View Letter
+        </button>
       </div>
     </div>
   )
@@ -259,10 +389,10 @@ function PremiumUpsellCard({ isPremium }) {
         </div>
         <div>
           <h3 className="text-2xl font-bold text-gray-900 mb-2">
-            Get the Full Fix Plan
+            🔒 Get the Full Fix Plan
           </h3>
           <p className="text-gray-700">
-            Unlock detailed gap analysis and custom cover letter
+            Unlock detailed gap analysis, action items, and custom cover letter
           </p>
         </div>
       </div>
@@ -271,7 +401,13 @@ function PremiumUpsellCard({ isPremium }) {
         <div className="flex items-center gap-3 p-3 bg-white rounded-lg">
           <Lock className="w-5 h-5 text-primary-600" />
           <span className="text-gray-700">
-            <strong>Detailed Gap Analysis:</strong> Exactly what to add to your CV
+            <strong>Detailed Gap Analysis:</strong> See exactly what skills you're missing
+          </span>
+        </div>
+        <div className="flex items-center gap-3 p-3 bg-white rounded-lg">
+          <Lock className="w-5 h-5 text-primary-600" />
+          <span className="text-gray-700">
+            <strong>Action Items:</strong> Step-by-step guide to fix your CV
           </span>
         </div>
         <div className="flex items-center gap-3 p-3 bg-white rounded-lg">
@@ -283,13 +419,13 @@ function PremiumUpsellCard({ isPremium }) {
         <div className="flex items-center gap-3 p-3 bg-white rounded-lg">
           <Lock className="w-5 h-5 text-primary-600" />
           <span className="text-gray-700">
-            <strong>ATS Optimization:</strong> Keywords and formatting tips
+            <strong>Custom Tips:</strong> Personalized advice for your profile
           </span>
         </div>
       </div>
 
-      <button className="btn btn-primary w-full text-lg">
-        Upgrade for £2.99
+      <button className="btn btn-primary w-full text-lg font-bold">
+        Upgrade for £2.99 →
       </button>
     </div>
   )
@@ -309,6 +445,10 @@ function VerdictDisplay({ verdictData, isPremium = false }) {
       </div>
     )
   }
+
+  // Extract premium data
+  const premiumData = verdictData.premium || {}
+  const showPremiumContent = isPremium && !premiumData.locked
 
   return (
     <div className="space-y-6">
@@ -349,8 +489,31 @@ function VerdictDisplay({ verdictData, isPremium = false }) {
         </div>
       )}
 
-      {/* Premium Upsell (if not premium) */}
-      <PremiumUpsellCard isPremium={isPremium} />
+      {/* PREMIUM CONTENT */}
+      {showPremiumContent ? (
+        <>
+          {/* Gap Details */}
+          {premiumData.gap_details && premiumData.gap_details.length > 0 && (
+            <GapDetailsCard 
+              gapDetails={premiumData.gap_details}
+              actionItems={premiumData.action_items}
+            />
+          )}
+
+          {/* Custom Tips */}
+          {premiumData.custom_tips && premiumData.custom_tips.length > 0 && (
+            <CustomTipsCard tips={premiumData.custom_tips} />
+          )}
+
+          {/* Cover Letter */}
+          {premiumData.cover_letter_available && (
+            <CoverLetterCard available={true} />
+          )}
+        </>
+      ) : (
+        /* Premium Upsell */
+        <PremiumUpsellCard isPremium={isPremium} />
+      )}
     </div>
   )
 }
@@ -360,6 +523,9 @@ export {
   ATSAnalysisCard,
   RecruiterAnalysisCard,
   ExperienceAnalysisCard,
+  GapDetailsCard,
+  CustomTipsCard,
+  CoverLetterCard,
   PremiumUpsellCard,
   VerdictDisplay
 }
