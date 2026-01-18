@@ -101,7 +101,8 @@ class StripeService:
         success_url: str,
         cancel_url: str,
         description: str = "Job Analysis",
-        quantity: int = 1
+        quantity: int = 1,
+        metadata: Optional[Dict[str, Any]] = None,  # ✅ 추가
     ) -> stripe.checkout.Session:
         """
         Create a checkout session for one-time payment
@@ -109,6 +110,8 @@ class StripeService:
         
         # Convert to cents
         amount_cents = int(amount * 100)
+        
+        safe_metadata = {k: str(v) for k, v in (metadata or {}).items()}
         
         session = stripe.checkout.Session.create(
             customer=customer_id,
@@ -127,10 +130,7 @@ class StripeService:
             mode="payment",
             success_url=success_url,
             cancel_url=cancel_url,
-            metadata={
-                "type": "one_time_job_analysis",
-                "credits": quantity
-            }
+            metadata=safe_metadata,  # ✅ 전달
         )
         
         return session

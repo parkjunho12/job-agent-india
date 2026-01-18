@@ -76,6 +76,11 @@ class Job(Base):
     user = relationship("User", back_populates="jobs")
     applications = relationship("Application", back_populates="job", cascade="all, delete-orphan")
     
+    is_premium_unlocked = Column(Boolean, default=False)
+    premium_unlocked_at = Column(DateTime, nullable=True)
+    premium_unlock_transaction_id = Column(String(255), nullable=True)
+    
+    
     def __repr__(self):
         return f"<Job(id={self.id}, title={self.title}, company={self.company})>"
 

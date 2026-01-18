@@ -39,7 +39,7 @@ async def create_job(
     if not can_analyze:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=reason)
     
-    usage_service.record_analysis(current_user.id)
+
     # Create job record
     job = Job(
         user_id=current_user.id,
@@ -62,63 +62,7 @@ async def create_job(
     
     # Parse JD asynchronously
     try:
-        query = db.query(Experience).filter(Experience.user_id == current_user.id)
-        experiences = query.order_by(Experience.start_date.desc()).all()
         
-        matcher = CVMatcher()
-        user_cv = await matcher.get_user_experiences(experiences)
-        
-        analysis_result = await analyze_jd_match(
-            job_description=job.description,
-            user_cv=user_cv,
-            job_metadata={
-                "title": job.title,
-                "company": job.company,
-                "required_skills": job.required_skills or [],
-                "preferred_skills": job.preferred_skills or [],
-                "required_experience": job.required_experience
-            },
-            user=current_user
-        )
-        
-        # Calculate verdict
-        verdict_data = calculate_verdict(
-            match_score=analysis_result["match_score"],
-            ats_score=analysis_result["ats_score"],
-            gaps=analysis_result.get("gaps", []),
-            strengths=analysis_result.get("strengths", [])
-        )
-        
-        
-        # Check if user has premium access
-        subscription = usage_service.get_user_subscription(current_user.id)
-        is_premium = subscription.plan.value in ["basic", "pro", "pay_per_job"]
-        
-        # Build response based on access level
-        response = {
-            "job_id": job.id,
-            "verdict": verdict_data["verdict"],
-            "ats_analysis": verdict_data["ats_analysis"],
-            "recruiter_analysis": verdict_data["recruiter_analysis"],
-            "experience_analysis": verdict_data["experience_analysis"],
-            "strengths": verdict_data["strengths"],
-            "is_premium": is_premium
-        }
-        
-        # Premium content
-        if is_premium:
-            response["premium"] = {
-                "gap_details": verdict_data["premium"]["gap_details"],
-                "action_items": verdict_data["actions"],
-                "cover_letter_available": True,
-                "custom_tips": analysis_result.get("tips", [])
-            }
-        else:
-            response["premium"] = {
-                "locked": True,
-                "message": "Upgrade to see detailed gap analysis and cover letter",
-                "upgrade_url": "/billing"
-            }
         
         parser = JDParser()
         analysis = await parser.parse_jd(
@@ -139,13 +83,6 @@ async def create_job(
         job.requires_cover_letter = analysis.requires_cover_letter
         job.requires_portfolio = analysis.requires_portfolio
         job.custom_questions = analysis.custom_questions
-        job.analysis_completed = True
-        job.status = "analyzed"
-        job.match_score = analysis_result["match_score"]
-        job.ats_score = analysis_result["ats_score"]
-        job.verdict_type = verdict_data["verdict"]["type"]
-        job.analysis_completed = True
-        job.verdict_payload = response 
         
         db.commit()
         db.refresh(job)

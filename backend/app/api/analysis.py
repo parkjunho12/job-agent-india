@@ -14,7 +14,7 @@ from app.models.experience import Experience
 from app.models.verdict import calculate_verdict
 from app.api.auth import get_current_user
 from app.services.usage_service import UsageService, QuotaExceededError
-from app.services.openai_service import analyze_jd_match
+from app.services.openai_service import analyze_jd_match, OpenAIService
 from app.core.cv_matcher import CVMatcher
 
 router = APIRouter()
@@ -27,11 +27,12 @@ async def analyze_job_match(
     db: Session = Depends(get_db)
 ):
     """
-    Analyze job match with Verdict System
+    Analyze job match with Enhanced Verdict System
     
-    Phase 2: Returns verdict instead of raw scores
-    - FREE users: Get verdict only
-    - PAID users: Get verdict + full analysis
+    Returns verdict with flexible premium access:
+    - FREE users: Basic verdict + unlock option
+    - PREMIUM subscribers: Full analysis
+    - Job unlocked: Full analysis for this job only
     """
     
     # Get job
@@ -62,16 +63,26 @@ async def analyze_job_match(
             }
         )
     
-    # Get user's CV (simplified - in real app, fetch from DB)
-    query = db.query(Experience).filter(Experience.user_id == current_user.id)
-    experiences = query.order_by(Experience.start_date.desc()).all()
+    # Get user's experiences
+    experiences = db.query(Experience).filter(
+        Experience.user_id == current_user.id
+    ).order_by(Experience.start_date.desc()).all()
     
+    if not experiences:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No experience data found. Please add your CV or experience first."
+        )
+    
+    # Build user CV
     matcher = CVMatcher()
     user_cv = await matcher.get_user_experiences(experiences)
     
     # Analyze match using AI
     try:
-        analysis_result = await analyze_jd_match(
+        openai_service = OpenAIService()
+        
+        analysis_result = await openai_service.analyze_jd_match(
             job_description=job.description,
             user_cv=user_cv,
             job_metadata={
@@ -84,62 +95,48 @@ async def analyze_job_match(
             user=current_user
         )
         
-        # Calculate verdict
+        # Check user's access level
+        subscription = usage_service.get_user_subscription(current_user.id)
+        is_premium = subscription and subscription.plan.value in ["basic", "pro"]
+        
+        # Check if THIS job has been unlocked
+        job_premium_unlocked = job.is_premium_unlocked if hasattr(job, 'is_premium_unlocked') else False
+        
+        # Calculate verdict with access flags
         verdict_data = calculate_verdict(
-            match_score=analysis_result["match_score"],
-            ats_score=analysis_result["ats_score"],
+            match_score=analysis_result.get("match_score", 0),
+            ats_score=analysis_result.get("ats_score", 0),
             gaps=analysis_result.get("gaps", []),
-            strengths=analysis_result.get("strengths", [])
+            strengths=analysis_result.get("strengths", []),
+            custom_tips=analysis_result.get("tips", []),
+            job_id=job_id,
+            is_premium=is_premium,
+            job_premium_unlocked=job_premium_unlocked
         )
         
         # Record usage
         usage_service.record_analysis(current_user.id)
         
-        # Check if user has premium access
-        subscription = usage_service.get_user_subscription(current_user.id)
-        is_premium = subscription.plan.value in ["basic", "pro", "pay_per_job"]
-        
-        # Build response based on access level
-        response = {
-            "job_id": job_id,
-            "verdict": verdict_data["verdict"],
-            "ats_analysis": verdict_data["ats_analysis"],
-            "recruiter_analysis": verdict_data["recruiter_analysis"],
-            "experience_analysis": verdict_data["experience_analysis"],
-            "strengths": verdict_data["strengths"],
-            "is_premium": is_premium
-        }
-        
-        # Premium content
-        if is_premium:
-            response["premium"] = {
-                "gap_details": verdict_data["premium"]["gap_details"],
-                "action_items": verdict_data["actions"],
-                "cover_letter_available": True,
-                "custom_tips": analysis_result.get("tips", [])
-            }
-        else:
-            response["premium"] = {
-                "locked": True,
-                "message": "Upgrade to see detailed gap analysis and cover letter",
-                "upgrade_url": "/billing"
-            }
-        
+
         # Update job with analysis results
-        job.match_score = analysis_result["match_score"]
-        job.ats_score = analysis_result["ats_score"]
+        job.match_score = analysis_result.get("match_score", 0)
+        job.ats_score = analysis_result.get("ats_score", 0)
         job.verdict_type = verdict_data["verdict"]["type"]
         job.analysis_completed = True
-        job.verdict_payload = response 
+        job.verdict_payload = verdict_data  # Cache entire response
         db.commit()
         
-        return response
+        # Add job_id to response
+        verdict_data["job_id"] = job_id
+        
+        return verdict_data
         
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Analysis failed: {str(e)}"
         )
+
 
 
 @router.get("/{job_id}/verdict")
@@ -151,6 +148,10 @@ async def get_job_verdict(
     """
     Get cached verdict for a job
     Returns previously analyzed verdict without consuming quota
+    
+    Automatically updates premium status based on:
+    - User's current subscription
+    - Job's unlock status
     """
     
     job = db.query(Job).filter(
@@ -170,22 +171,31 @@ async def get_job_verdict(
             detail="Job has not been analyzed yet. Call /analyze first."
         )
     
-    if job.verdict_payload:
-        # ✅ analyze와 동일한 응답 스키마
-        return {**job.verdict_payload, "cached": True}
-
-    # (하위호환) payload가 없다면 최소한이라도 반환
-    return {
-        "job_id": job_id,
-        "cached": True,
-        "verdict": {"type": job.verdict_type or "unknown"},
-        "ats_analysis": None,
-        "recruiter_analysis": None,
-        "experience_analysis": None,
-        "strengths": [],
-        "is_premium": False
-    }
-
+    # Get current access level
+    usage_service = UsageService(db)
+    subscription = usage_service.get_user_subscription(current_user.id)
+    is_premium = subscription and subscription.plan.value in ["basic", "pro"]
+    job_premium_unlocked = job.is_premium_unlocked if hasattr(job, 'is_premium_unlocked') else False
+    
+    # Update cached verdict with current access
+    cached_verdict = job.verdict_payload.copy()
+    cached_verdict["cached"] = True
+    cached_verdict["is_premium"] = is_premium
+    cached_verdict["job_premium_unlocked"] = job_premium_unlocked
+    
+    # Update premium section based on current access
+    show_premium = is_premium or job_premium_unlocked
+    
+    if show_premium and cached_verdict.get("premium", {}).get("locked"):
+        # User now has access - unlock cached content
+        cached_verdict["premium"]["locked"] = False
+    elif not show_premium and not cached_verdict.get("premium", {}).get("locked"):
+        # User lost access - lock content
+        cached_verdict["premium"]["locked"] = True
+        cached_verdict["premium"]["message"] = "Unlock full analysis for this job"
+        cached_verdict["premium"]["upgrade_url"] = f"/billing/unlock-job/{job_id}"
+    
+    return cached_verdict
 
 @router.post("/{job_id}/mark-decision")
 async def mark_job_decision(
@@ -291,7 +301,8 @@ async def get_decision_stats(
             total_match_score += job.match_score
     
     # Calculate average
-    stats["average_match_score"] = round(total_match_score / len(jobs), 1)
+    if len(jobs) > 0:
+        stats["average_match_score"] = round(total_match_score / len(jobs), 1)
     
     # Calculate time saved (estimate 2 hours per bad job avoided)
     stats["time_saved_hours"] = stats["high_risk_avoided"] * 2

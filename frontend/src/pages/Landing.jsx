@@ -315,7 +315,7 @@ function Landing() {
                   Pay Per Job
                 </h3>
                 <div className="mb-2">
-                  <span className="text-4xl font-bold text-gray-900">£2.99</span>
+                  <span className="text-4xl font-bold text-gray-900">$2.99</span>
                 </div>
                 <p className="text-sm text-gray-600">per analysis</p>
               </div>
@@ -360,7 +360,7 @@ function Landing() {
                   Try Free First
                 </h3>
                 <div className="mb-2">
-                  <span className="text-4xl font-bold text-gray-900">£0</span>
+                  <span className="text-4xl font-bold text-gray-900">$0</span>
                 </div>
                 <p className="text-sm text-gray-600">3 free analyses</p>
               </div>
@@ -414,7 +414,7 @@ function Landing() {
                   Basic
                 </h3>
                 <div className="mb-2">
-                  <span className="text-4xl font-bold text-gray-900">£9</span>
+                  <span className="text-4xl font-bold text-gray-900">$9.99</span>
                   <span className="text-gray-600">/mo</span>
                 </div>
                 <p className="text-sm text-gray-600">25 analyses/month</p>
@@ -460,7 +460,7 @@ function Landing() {
                   Pro
                 </h3>
                 <div className="mb-2">
-                  <span className="text-4xl font-bold text-gray-900">£29</span>
+                  <span className="text-4xl font-bold text-gray-900">$29.99</span>
                   <span className="text-gray-600">/mo</span>
                 </div>
                 <p className="text-sm text-gray-600">100 analyses/month</p>

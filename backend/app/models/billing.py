@@ -224,7 +224,7 @@ PLAN_LIMITS = {
     ),
     PlanType.BASIC: PlanLimits(
         analyses_per_month=25,
-        price_monthly=9.0,
+        price_monthly=9.99,
         credits_on_signup=0,
         features=[
             "25 analyses per month",
@@ -237,7 +237,7 @@ PLAN_LIMITS = {
     ),
     PlanType.PRO: PlanLimits(
         analyses_per_month=100,
-        price_monthly=29.0,
+        price_monthly=29.99,
         credits_on_signup=0,
         features=[
             "100 analyses per month",
@@ -295,7 +295,7 @@ PRICING_TIERS = [
     {
         "id": "basic",
         "name": "Basic",
-        "price": 9,
+        "price": 9.99,
         "period": "per month",
         "description": "For casual job seekers",
         "features": [
@@ -311,7 +311,7 @@ PRICING_TIERS = [
     {
         "id": "pro",
         "name": "Pro",
-        "price": 29,
+        "price": 29.99,
         "period": "per month",
         "description": "For serious job seekers",
         "features": [

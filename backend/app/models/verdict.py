@@ -1,10 +1,10 @@
 """
-Verdict System - 3-Tier Decision Framework
+Enhanced Verdict System with Per-Job Premium Unlock
 backend/app/models/verdict.py
 """
 
 import enum
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 
 class VerdictType(enum.Enum):
@@ -35,7 +35,7 @@ class VerdictRecommendation:
         "type": VerdictType.BORDERLINE,
         "icon": "⚠️",
         "title": "Borderline – Fix Before Applying",
-        "action": "Fix these 3 gaps first:",
+        "action": "Fix these gaps first, then apply:",
         "color": "orange",
         "confidence": "medium",
         "should_apply": False,
@@ -64,11 +64,11 @@ class VerdictRecommendation:
         - <50%: High Risk (do not apply)
         """
         if match_score >= 75:
-            return cls.STRONG_MATCH
+            return cls.STRONG_MATCH.copy()
         elif match_score >= 50:
-            return cls.BORDERLINE
+            return cls.BORDERLINE.copy()
         else:
-            return cls.HIGH_RISK
+            return cls.HIGH_RISK.copy()
     
     @classmethod
     def get_action_items(cls, verdict_type: VerdictType, gaps: List[Dict]) -> List[str]:
@@ -78,28 +78,31 @@ class VerdictRecommendation:
         This is what users pay for - clear next steps
         """
         if verdict_type == VerdictType.STRONG_MATCH:
+            # Strong match: emphasize existing strengths
             return [
                 f"Highlight your {gap['skill']} experience prominently"
                 for gap in gaps[:3] if gap.get('has_experience', False)
-            ]
+            ] or ["Emphasize your relevant experience", "Apply with confidence"]
         
         elif verdict_type == VerdictType.BORDERLINE:
+            # Borderline: focus on fixing gaps
             return [
                 f"Add examples of {gap['skill']} (currently missing)"
                 for gap in gaps[:3] if not gap.get('has_experience', False)
-            ]
+            ] or ["Improve your CV before applying", "Address skill gaps"]
         
         else:  # HIGH_RISK
+            # High risk: explain why not ready
             return [
-                f"You lack required experience in {gap['skill']} ({gap['required_level']} needed)"
+                f"You lack required experience in {gap['skill']} ({gap.get('required_level', 'Expert')} needed)"
                 for gap in gaps[:3]
-            ]
+            ] or ["Experience level below requirements", "Consider roles more aligned with your background"]
 
 
 class VerdictAnalysis:
     """
     Complete verdict analysis structure
-    This replaces showing raw scores
+    Enhanced with per-job premium unlock support
     """
     
     def __init__(
@@ -107,12 +110,16 @@ class VerdictAnalysis:
         match_score: float,
         ats_score: float,
         gaps: List[Dict],
-        strengths: List[str]
+        strengths: List[str],
+        custom_tips: Optional[List[str]] = None,
+        job_id: Optional[int] = None
     ):
         self.match_score = match_score
         self.ats_score = ats_score
         self.gaps = gaps
         self.strengths = strengths
+        self.custom_tips = custom_tips or []
+        self.job_id = job_id
         
         # Get verdict
         self.verdict = VerdictRecommendation.get_verdict(match_score)
@@ -124,46 +131,83 @@ class VerdictAnalysis:
             gaps
         )
     
-    def to_dict(self) -> Dict:
+    def to_dict(
+        self, 
+        is_premium: bool = False,
+        job_premium_unlocked: bool = False
+    ) -> Dict:
         """
         Convert to response format
         
+        Enhanced with per-job unlock support:
+        - Free users: locked=True, show upgrade options
+        - Premium subscribers: locked=False, show all
+        - Job unlocked: locked=False, show all for this job
+        
         IMPORTANT: We hide raw scores and show language instead
         """
-        return {
-            # Verdict (what users see)
+        
+        # Determine if premium content should be shown
+        show_premium = is_premium or job_premium_unlocked
+        
+        response = {
+            # Verdict (what users see - always visible)
             "verdict": {
                 "type": self.verdict_type.value,
                 "icon": self.verdict["icon"],
                 "title": self.verdict["title"],
                 "action": self.verdict["action"],
                 "color": self.verdict["color"],
-                "should_apply": self.verdict["should_apply"]
+                "should_apply": self.verdict["should_apply"],
+                "actions": self.action_items  # Next steps
             },
             
-            # Actions (what to do next)
-            "actions": self.action_items,
-            
-            # Analysis sections (language, not scores)
+            # Analysis sections (language, not scores - always visible)
             "ats_analysis": self._get_ats_analysis(),
             "recruiter_analysis": self._get_recruiter_analysis(),
             "experience_analysis": self._get_experience_analysis(),
             
-            # Strengths to emphasize
+            # Strengths to emphasize (always visible)
             "strengths": self.strengths[:5],
             
-            # Hidden from free users
-            "premium": {
-                "gap_details": self.gaps,
-                "cover_letter_available": True,
-                "custom_tips": True
-            }
+            # User access flags
+            "is_premium": is_premium,
+            "job_premium_unlocked": job_premium_unlocked,
         }
+        
+        # Premium content
+        if show_premium:
+            # Show full premium content
+            response["premium"] = {
+                "locked": False,
+                "gap_details": self.gaps,
+                "action_items": self.action_items,
+                "cover_letter_available": True,
+                "custom_tips": self.custom_tips
+            }
+        else:
+            # Show locked state with upgrade options
+            response["premium"] = {
+                "locked": True,
+                "message": "Unlock full analysis for this job",
+                "upgrade_url": f"/billing/unlock-job/{self.job_id}" if self.job_id else "/billing",
+                "price": 2.99,
+                "currency": "USD",
+                # Tease what's locked
+                "gap_details": self.gaps,
+                "action_items": self.action_items,
+                "cover_letter_available": True,
+                "custom_tips": self.custom_tips
+            }
+        
+        return response
     
     def _get_ats_analysis(self) -> Dict:
         """
         ATS filter risk - language, not score
         """
+        missing_keywords = len([g for g in self.gaps if g.get('missing_keyword')])
+        
         if self.ats_score >= 80:
             return {
                 "status": "pass",
@@ -181,7 +225,7 @@ class VerdictAnalysis:
                 "icon": "⚠️",
                 "message": "May pass ATS with improvements",
                 "details": [
-                    f"Missing {len([g for g in self.gaps if g.get('missing_keyword')])} required keywords",
+                    f"Missing {missing_keywords} required keywords" if missing_keywords > 0 else "Most keywords present",
                     "Add specific examples",
                     "Improve keyword density"
                 ]
@@ -192,7 +236,7 @@ class VerdictAnalysis:
                 "icon": "❌",
                 "message": "Will be filtered out by ATS",
                 "details": [
-                    f"Missing {len([g for g in self.gaps if g.get('missing_keyword')])} critical keywords",
+                    f"Missing {missing_keywords} critical keywords",
                     "Major experience gaps detected",
                     "Format may have issues"
                 ]
@@ -240,9 +284,6 @@ class VerdictAnalysis:
         """
         Experience level analysis
         """
-        # Calculate years from gaps/strengths
-        # This is simplified - in real implementation, parse CV
-        
         return {
             "overall": "Meets most requirements" if self.match_score >= 50 else "Below requirements",
             "key_areas": [
@@ -251,7 +292,7 @@ class VerdictAnalysis:
                     "status": "missing" if not gap.get("has_experience") else "present",
                     "note": gap.get("note", "")
                 }
-                for gap in self.gaps[:3]
+                for gap in self.gaps[:5]  # Show top 5 gaps
             ]
         }
 
@@ -260,18 +301,40 @@ def calculate_verdict(
     match_score: float,
     ats_score: float,
     gaps: List[Dict],
-    strengths: List[str]
+    strengths: List[str],
+    custom_tips: Optional[List[str]] = None,
+    job_id: Optional[int] = None,
+    is_premium: bool = False,
+    job_premium_unlocked: bool = False
 ) -> Dict:
     """
     Main function to calculate verdict
     
-    This is called from the analysis endpoint
+    Enhanced with per-job premium unlock support
+    
+    Args:
+        match_score: Overall match percentage
+        ats_score: ATS compatibility score
+        gaps: List of skill/experience gaps
+        strengths: List of user's strengths
+        custom_tips: Optional custom tips for user
+        job_id: Job ID for unlock URL
+        is_premium: Whether user has premium subscription
+        job_premium_unlocked: Whether THIS job has been unlocked
+    
+    Returns:
+        Complete verdict analysis dict
     """
     analysis = VerdictAnalysis(
         match_score=match_score,
         ats_score=ats_score,
         gaps=gaps,
-        strengths=strengths
+        strengths=strengths,
+        custom_tips=custom_tips,
+        job_id=job_id
     )
     
-    return analysis.to_dict()
+    return analysis.to_dict(
+        is_premium=is_premium,
+        job_premium_unlocked=job_premium_unlocked
+    )

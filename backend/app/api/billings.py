@@ -8,8 +8,11 @@ from sqlalchemy.orm import Session
 from typing import List
 import os
 
+from pydantic import BaseModel
+from datetime import datetime, timedelta, timezone
 from app.db.database import get_db
 from app.models.user import User
+from app.models.job import Job
 from app.models.billing import (
     Subscription, Transaction, UsageCounter,
     SubscriptionResponse, UsageResponse, 
@@ -24,6 +27,12 @@ from app.utils.config import settings
 
 router = APIRouter()
 
+# ============================================
+# 🔓 PER-JOB PREMIUM UNLOCK (NEW!)
+# ============================================
+
+class UnlockJobRequest(BaseModel):
+    job_id: int
 
 # ============================================
 # Plans & Pricing
@@ -474,6 +483,94 @@ async def get_transactions(
             for t in transactions
         ]
     }
+    
+@router.post("/unlock-job-premium")
+async def unlock_job_premium(
+    request: UnlockJobRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Unlock premium features for a specific job
+    One-time payment of £2.99
+    
+    This allows users to buy premium analysis per-job
+    without subscribing to a plan
+    """
+    
+    # Get job
+    job = db.query(Job).filter(
+        Job.id == request.job_id,
+        Job.user_id == current_user.id
+    ).first()
+    
+    if not job:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Job not found"
+        )
+    
+    # Check if already unlocked
+    if hasattr(job, 'is_premium_unlocked') and job.is_premium_unlocked:
+        return {
+            "message": "Job premium already unlocked",
+            "job_id": job.id,
+            "unlocked_at": job.premium_unlocked_at
+        }
+    
+    # Get or create subscription (for Stripe customer)
+    usage_service = UsageService(db)
+    subscription = usage_service.get_or_create_subscription(current_user.id)
+    
+    # Create Stripe customer if not exists
+    if not subscription.stripe_customer_id:
+        customer = stripe_service.create_customer(
+            email=current_user.email,
+            name=current_user.full_name,
+            user_id=current_user.id
+        )
+        subscription.stripe_customer_id = customer.id
+        db.commit()
+    
+    # Create Stripe checkout session
+    frontend_url = settings.FRONTEND_URL or "http://localhost:5173"
+    success_url = f"{frontend_url}/jobs/{job.id}?unlock_success=true"
+    cancel_url = f"{frontend_url}/jobs/{job.id}?unlock_cancelled=true"
+    
+    try:
+        # Create checkout session for one-time payment
+        session = stripe_service.create_checkout_session_one_time(
+        amount=2.99,
+        customer_id=subscription.stripe_customer_id,
+        success_url=success_url,
+        cancel_url=cancel_url,
+        description=f"Premium Analysis: {job.title}",
+        quantity=1,
+        metadata={
+            "type": "job_premium_unlock",
+            "quantity": 1,
+            "user_id": current_user.id,
+            "job_id": job.id
+        }
+    )
+        
+        # Create pending unlock record
+        # (You'll need to create a PremiumUnlock model/table)
+        # For now, we'll track via transaction metadata
+        
+        return {
+            "checkout_url": session.url,
+            "session_id": session.id,
+            "job_id": job.id,
+            "amount": 2.99,
+            "currency": "USD"
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to create checkout: {str(e)}"
+        )
 
 
 # ============================================
@@ -496,14 +593,41 @@ async def stripe_webhook(
         raise HTTPException(status_code=400, detail=str(e))
     
     usage_service = UsageService(db)
-    
+
     # ============================================
     # Handle One-Time Payment (Pay-per-job)
     # ============================================
     if event.type == "checkout.session.completed":
         session = event.data.object
+        metadata = session.get("metadata", {})
+        payment_type = metadata.get("type")
         
-        if session.mode == "payment":
+        print(f"🔔 Webhook: checkout.session.completed - type={session}")
+        if payment_type == "job_premium_unlock":
+            job_id = int(metadata.get("job_id"))
+            user_id = int(metadata.get("user_id"))
+            
+            job = db.query(Job).filter(Job.id == job_id).first()
+            if job:
+                job.is_premium_unlocked = True
+                job.premium_unlocked_at = datetime.now(timezone.utc)
+                job.premium_unlock_transaction_id = session.payment_intent
+                
+                # Record transaction
+                usage_service.record_transaction(
+                    user_id=user_id,
+                    amount=2.99,
+                    type=TransactionType.ONE_TIME,
+                    status="succeeded",
+                    credits_added=0,
+                    stripe_payment_intent_id=session.payment_intent,
+                    description=f"Premium Unlock: {job.title}"
+                )
+                
+                db.commit()
+                print(f"✅ Unlocked premium for job {job_id}")
+        
+        if payment_type == "credit_purchase" or session.mode == "payment":
             # One-time payment completed
             customer_id = session.customer
             subscription = db.query(Subscription).filter(
@@ -547,8 +671,10 @@ async def stripe_webhook(
     # Handle Subscription Created
     # ============================================
     elif event.type == "customer.subscription.created":
+        
         subscription_data = stripe_service.parse_subscription_from_event(event)
         
+        print(f"🔔 Webhook: customer.subscription.created - data={subscription_data}")
         if subscription_data:
             subscription = db.query(Subscription).filter(
                 Subscription.stripe_customer_id == subscription_data["customer_id"]
