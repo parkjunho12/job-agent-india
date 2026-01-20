@@ -551,63 +551,81 @@ function JobDetail() {
       )}
       
       {/* AI Actions */}
-      {!isEditing && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <button 
-            onClick={() => matchExperiencesMutation.mutate()} 
-            disabled={matchExperiencesMutation.isPending} 
-            className="card hover:shadow-lg transition-all"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                {matchExperiencesMutation.isPending ? (
-                  <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
-                ) : (
-                  <TrendingUp className="w-5 h-5 text-blue-600" />
-                )}
-              </div>
-              <div className="text-left">
-                <p className="font-semibold text-gray-900">Match Experiences</p>
-                <p className="text-xs text-gray-600">Find relevant skills</p>
-              </div>
-            </div>
-          </button>
-          <button 
-            onClick={handleQuickApply}
-            disabled={generateApplicationMutation.isPending}
-            className="card hover:shadow-lg transition-all"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-success-100 rounded-lg flex items-center justify-center">
-                {generateApplicationMutation.isPending ? (
-                  <Loader2 className="w-5 h-5 text-success-600 animate-spin" />
-                ) : (
-                  <Zap className="w-5 h-5 text-success-600" />
-                )}
-              </div>
-              <div className="text-left">
-                <p className="font-semibold text-gray-900">Quick Apply</p>
-                <p className="text-xs text-gray-600">Fast generation</p>
-              </div>
-            </div>
-          </button>
-          <button 
-            onClick={() => navigate(`/jobs/${id}/analysis`)}
-            className="card hover:shadow-lg transition-all"
-          >
-            
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
-                <Brain className="w-5 h-5 text-red-600" />
-              </div>
-              <div className="text-left">
-              <p className="font-bold text-gray-900">Analyze & Generate</p>
-                <p className="text-xs text-gray-600">⚡ AI Match verdict + application</p>
-              </div>
-            </div>
-          </button>
+      {/* AI Actions */}
+{!isEditing && (
+  <div className="mb-6 space-y-4">
+    {/* PRIMARY CTA: Analyze & Generate */}
+    <button
+      onClick={() => navigate(`/jobs/${id}/analysis`)}
+      className="card hover:shadow-lg w-full transition-all border-2 border-primary-300 bg-primary-50"
+    >
+      <div className="flex items-center gap-4">
+        <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center flex-shrink-0">
+          <Brain className="w-6 h-6 text-primary-700" />
         </div>
-      )}
+
+        <div className="flex-1 text-left">
+          <p className="text-lg font-bold text-gray-900">
+            Analyze & Generate
+          </p>
+          <p className="text-sm text-gray-700">
+            Get the AI match verdict and generate your application from one place
+          </p>
+        </div>
+
+        <div className="text-right">
+          <span className="inline-flex items-center rounded-full bg-white px-3 py-1 text-xs font-semibold text-primary-700 border border-primary-200">
+            Recommended
+          </span>
+        </div>
+      </div>
+    </button>
+
+    {/* Secondary actions */}
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <button
+        onClick={() => matchExperiencesMutation.mutate()}
+        disabled={matchExperiencesMutation.isPending}
+        className="card hover:shadow-lg transition-all"
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+            {matchExperiencesMutation.isPending ? (
+              <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
+            ) : (
+              <TrendingUp className="w-5 h-5 text-blue-600" />
+            )}
+          </div>
+          <div className="text-left">
+            <p className="font-semibold text-gray-900">Match Experiences</p>
+            <p className="text-xs text-gray-600">Find relevant skills</p>
+          </div>
+        </div>
+      </button>
+
+      <button
+        onClick={handleQuickApply}
+        disabled={generateApplicationMutation.isPending}
+        className="card hover:shadow-lg transition-all"
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-success-100 rounded-lg flex items-center justify-center">
+            {generateApplicationMutation.isPending ? (
+              <Loader2 className="w-5 h-5 text-success-600 animate-spin" />
+            ) : (
+              <Zap className="w-5 h-5 text-success-600" />
+            )}
+          </div>
+          <div className="text-left">
+            <p className="font-semibold text-gray-900">Quick Apply</p>
+            <p className="text-xs text-gray-600">Fast generation</p>
+          </div>
+        </div>
+      </button>
+    </div>
+  </div>
+)}
+
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Content */}
