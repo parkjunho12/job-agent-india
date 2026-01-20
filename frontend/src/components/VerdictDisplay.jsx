@@ -1,7 +1,10 @@
-import { CheckCircle, AlertTriangle, XCircle, ArrowRight, Lock, Zap, Target, Shield } from 'lucide-react'
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import api from '../services/api'
+import { CheckCircle, AlertTriangle, XCircle, ArrowRight, Lock, Zap, Target, Edit } from 'lucide-react'
+import UnlockPremiumCard from './UnlockPremiumCard'
+import QuickApplyCard from './QuickApplyCard'
+import AIGenerationHub from './AIGenerationHub'
+import EditQuestionsCard from './EditQuestionsCard'
+import { jobsApi } from '../services/api'
 
 /**
  * VerdictCard Component
@@ -241,7 +244,7 @@ function ExperienceAnalysisCard({ analysis }) {
 }
 
 /**
- * GapDetailsCard - Premium Component
+ * GapDetailsCard - Premium
  */
 function GapDetailsCard({ gapDetails, actionItems }) {
   if (!gapDetails || gapDetails.length === 0) return null
@@ -305,7 +308,7 @@ function GapDetailsCard({ gapDetails, actionItems }) {
 }
 
 /**
- * CustomTipsCard - Premium Component
+ * CustomTipsCard - Premium
  */
 function CustomTipsCard({ tips }) {
   if (!tips || tips.length === 0) return null
@@ -336,205 +339,12 @@ function CustomTipsCard({ tips }) {
 }
 
 /**
- * CoverLetterCard - Premium Component
+ * Main VerdictDisplay Component with AI Generation Hub
  */
-function CoverLetterCard({ available }) {
-  if (!available) return null
-
-  return (
-    <div className="bg-gradient-to-br from-success-50 to-success-100 border-2 border-success-300 rounded-xl p-6">
-      <div className="flex items-center gap-4">
-        <div className="w-12 h-12 bg-success-500 rounded-full flex items-center justify-center flex-shrink-0">
-          <CheckCircle className="w-6 h-6 text-white" />
-        </div>
-        <div className="flex-1">
-          <h3 className="text-lg font-bold text-gray-900 mb-1">
-            ✨ Custom Cover Letter Ready!
-          </h3>
-          <p className="text-sm text-gray-700">
-            A tailored cover letter has been generated for this job
-          </p>
-        </div>
-        <button className="btn btn-success flex items-center gap-2 whitespace-nowrap">
-          <CheckCircle className="w-4 h-4" />
-          View Letter
-        </button>
-      </div>
-    </div>
-  )
-}
-
-/**
- * UnlockPremiumCard - Uses existing premium.upgrade_url and premium.message
- */
-function UnlockPremiumCard({ premium, jobId }) {
-  const navigate = useNavigate()
-  const [loading, setLoading] = useState(false)
-
-  const handleUnlock = async () => {
-    // Check if upgrade_url is for per-job unlock or subscription
-    if (premium.upgrade_url === '/billing') {
-      // Subscription upgrade
-      navigate('/billing')
-    } else if (premium.upgrade_url && premium.upgrade_url.includes('unlock')) {
-      // Per-job unlock
-      setLoading(true)
-      try {
-        const response = await api.post('/billing/unlock-job-premium', {
-          job_id: jobId
-        })
-        window.location.href = response.data.checkout_url
-      } catch (error) {
-        console.error('Unlock failed:', error)
-        setLoading(false)
-      }
-    } else {
-      // Default to billing page
-      navigate('/billing')
-    }
-  }
-
-  // Determine if this is per-job unlock
-  const isPerJobUnlock = premium.upgrade_url && premium.upgrade_url.includes('unlock')
-  const price = premium.price || 2.99
-
-  return (
-    <div className="bg-gradient-to-br from-primary-50 to-primary-100 border-4 border-primary-500 rounded-2xl p-8 shadow-xl">
-      {/* Header */}
-      <div className="text-center mb-6">
-        <div className="w-20 h-20 bg-gradient-to-br from-primary-500 to-success-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
-          <Lock className="w-10 h-10 text-white" />
-        </div>
-        <h3 className="text-3xl font-bold text-gray-900 mb-2">
-          🔒 {premium.message || 'Unlock Full Analysis'}
-        </h3>
-        <p className="text-lg text-gray-700">
-          {isPerJobUnlock 
-            ? 'Get the complete fix plan for this job'
-            : 'Upgrade to see detailed gap analysis and cover letter'}
-        </p>
-      </div>
-
-      {/* What's Included */}
-      <div className="bg-white rounded-xl p-6 mb-6 shadow-md">
-        <h4 className="font-bold text-gray-900 mb-4 text-lg">What You'll Get:</h4>
-        <div className="space-y-4">
-          <div className="flex items-start gap-3">
-            <div className="w-8 h-8 bg-success-100 rounded-full flex items-center justify-center flex-shrink-0">
-              <CheckCircle className="w-5 h-5 text-success-600" />
-            </div>
-            <div>
-              <p className="font-semibold text-gray-900">Detailed Gap Analysis</p>
-              <p className="text-sm text-gray-600">
-                See exactly which skills you're missing and why
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-3">
-            <div className="w-8 h-8 bg-success-100 rounded-full flex items-center justify-center flex-shrink-0">
-              <Zap className="w-5 h-5 text-success-600" />
-            </div>
-            <div>
-              <p className="font-semibold text-gray-900">Quick Fix Action Items</p>
-              <p className="text-sm text-gray-600">
-                Step-by-step guide to improve your chances
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-3">
-            <div className="w-8 h-8 bg-success-100 rounded-full flex items-center justify-center flex-shrink-0">
-              <CheckCircle className="w-5 h-5 text-success-600" />
-            </div>
-            <div>
-              <p className="font-semibold text-gray-900">Custom Tips</p>
-              <p className="text-sm text-gray-600">
-                Personalized advice based on your profile
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-3">
-            <div className="w-8 h-8 bg-success-100 rounded-full flex items-center justify-center flex-shrink-0">
-              <CheckCircle className="w-5 h-5 text-success-600" />
-            </div>
-            <div>
-              <p className="font-semibold text-gray-900">Cover Letter Template</p>
-              <p className="text-sm text-gray-600">
-                Tailored to this specific job description
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Pricing (if per-job) */}
-      {isPerJobUnlock && (
-        <div className="bg-gradient-to-r from-primary-500 to-success-500 text-white rounded-xl p-6 mb-6 text-center shadow-lg">
-          <p className="text-sm opacity-90 mb-1">One-time payment</p>
-          <div className="flex items-center justify-center gap-2 mb-1">
-            <span className="text-5xl font-bold">£{price}</span>
-          </div>
-          <p className="text-sm opacity-90">For this job only • No subscription</p>
-        </div>
-      )}
-
-      {/* CTA Button */}
-      <button 
-        onClick={handleUnlock}
-        disabled={loading}
-        className="btn btn-primary w-full text-xl font-bold h-16 flex items-center justify-center gap-3 shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
-      >
-        {loading ? (
-          <>
-            <div className="spinner" />
-            Processing...
-          </>
-        ) : (
-          <>
-            <Lock className="w-6 h-6" />
-            {isPerJobUnlock ? 'Unlock Full Analysis' : 'Upgrade Now'}
-            <ArrowRight className="w-6 h-6" />
-          </>
-        )}
-      </button>
-
-      {/* Trust Signals */}
-      <div className="mt-6 space-y-2">
-        <div className="flex items-center justify-center gap-2 text-sm text-gray-600">
-          <Shield className="w-4 h-4 text-primary-600" />
-          <span>Secure payment via Stripe</span>
-        </div>
-        <div className="flex items-center justify-center gap-2 text-sm text-gray-600">
-          <CheckCircle className="w-4 h-4 text-success-600" />
-          <span>Instant access after payment</span>
-        </div>
-        {isPerJobUnlock && (
-          <div className="flex items-center justify-center gap-2 text-sm text-gray-600">
-            <CheckCircle className="w-4 h-4 text-success-600" />
-            <span>100% money-back guarantee</span>
-          </div>
-        )}
-      </div>
-
-      {/* Subscription Upsell (if per-job) */}
-      {isPerJobUnlock && (
-        <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <p className="text-sm text-gray-700 text-center">
-            💡 <strong>Analyzing multiple jobs?</strong> Get unlimited premium for $9.99/month
-          </p>
-        </div>
-      )}
-    </div>
-  )
-}
-
-/**
- * Main VerdictDisplay Component
- * Works with existing backend structure
- */
-function VerdictDisplay({ verdictData, jobId }) {
+function VerdictDisplay({ verdictData, jobId, job, onJobUpdate }) {
+  const [isEditingQuestions, setIsEditingQuestions] = useState(false)
+  const [currentJob, setCurrentJob] = useState(job)
+  
   if (!verdictData) {
     return (
       <div className="bg-yellow-50 border-2 border-yellow-300 rounded-xl p-8 text-center">
@@ -544,19 +354,54 @@ function VerdictDisplay({ verdictData, jobId }) {
     )
   }
 
-  const premium = verdictData.premium || {}
-  const showPremiumContent = !premium.locked
+  const premiumData = verdictData.premium || {}
+  const showPremiumContent = !premiumData.locked
+  const shouldShowQuickApply = verdictData.verdict?.should_apply
+
+  // Scroll to AI Generation Hub
+  const scrollToAIHub = () => {
+    const element = document.getElementById('ai-generation-hub')
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+  }
+
+  const handleSaveQuestions = async (structuredQuestions) => {
+    try {
+      // structuredQuestions comes from backend after save
+      // Update local state with the structured format
+      setCurrentJob({ ...currentJob, custom_questions: structuredQuestions })
+      setIsEditingQuestions(false)
+      
+      // Notify parent if callback provided
+      if (onJobUpdate) {
+        onJobUpdate({ ...currentJob, custom_questions: structuredQuestions })
+      }
+      
+    } catch (error) {
+      console.error('Failed to update local state:', error)
+      throw error
+    }
+  }
 
   return (
     <div className="space-y-6">
-      {/* FREE CONTENT - Always visible */}
+      {/* FREE CONTENT */}
       
-      {/* Main Verdict */}
+      {/* 1. Main Verdict */}
       {verdictData.verdict && (
         <VerdictCard verdict={verdictData.verdict} />
       )}
 
-      {/* Analysis Sections */}
+      {/* 2. Quick Apply (if strong match) */}
+      {shouldShowQuickApply && (
+        <QuickApplyCard 
+          job={currentJob}
+          onGenerateApplication={scrollToAIHub}
+        />
+      )}
+
+      {/* 3. Analysis Sections */}
       <div className="grid md:grid-cols-2 gap-6">
         {verdictData.ats_analysis && (
           <ATSAnalysisCard analysis={verdictData.ats_analysis} />
@@ -566,12 +411,12 @@ function VerdictDisplay({ verdictData, jobId }) {
         )}
       </div>
 
-      {/* Experience Analysis */}
+      {/* 4. Experience Analysis */}
       {verdictData.experience_analysis && (
         <ExperienceAnalysisCard analysis={verdictData.experience_analysis} />
       )}
 
-      {/* Strengths */}
+      {/* 5. Strengths */}
       {verdictData.strengths && verdictData.strengths.length > 0 && (
         <div className="bg-success-50 border-2 border-success-200 rounded-xl p-6">
           <h3 className="text-xl font-bold text-gray-900 mb-4">
@@ -588,28 +433,55 @@ function VerdictDisplay({ verdictData, jobId }) {
         </div>
       )}
 
-      {/* PREMIUM CONTENT or UNLOCK CARD */}
+      {/* PREMIUM CONTENT */}
       {showPremiumContent ? (
         <>
-          {/* Show premium features if unlocked */}
-          {premium.gap_details && premium.gap_details.length > 0 && (
+          {/* 6. Gap Details */}
+          {premiumData.gap_details && premiumData.gap_details.length > 0 && (
             <GapDetailsCard 
-              gapDetails={premium.gap_details}
-              actionItems={premium.action_items}
+              gapDetails={premiumData.gap_details}
+              actionItems={premiumData.action_items}
             />
           )}
 
-          {premium.custom_tips && premium.custom_tips.length > 0 && (
-            <CustomTipsCard tips={premium.custom_tips} />
+          {/* 7. Custom Tips */}
+          {premiumData.custom_tips && premiumData.custom_tips.length > 0 && (
+            <CustomTipsCard tips={premiumData.custom_tips} />
           )}
 
-          {premium.cover_letter_available && (
-            <CoverLetterCard available={true} />
+          {/* 8. EDIT QUESTIONS or AI GENERATION HUB */}
+          {isEditingQuestions ? (
+            <EditQuestionsCard
+              job={currentJob}
+              onSave={handleSaveQuestions}
+              onCancel={() => setIsEditingQuestions(false)}
+            />
+          ) : (
+            <div id="ai-generation-hub" className="relative">
+              {/* Edit Questions Button */}
+              <div className="mb-4">
+                <button
+                  onClick={() => setIsEditingQuestions(true)}
+                  className="btn btn-outline w-full flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all"
+                >
+                  <Edit className="w-4 h-4" />
+                  Edit Questions ({currentJob.custom_questions?.length || 0})
+                </button>
+              </div>
+
+              <AIGenerationHub 
+                job={currentJob}
+                jobId={jobId}
+              />
+            </div>
           )}
         </>
       ) : (
-        /* Show unlock card if locked */
-        <UnlockPremiumCard premium={premium} jobId={jobId} />
+        /* Premium Upsell */
+        <UnlockPremiumCard 
+          premium={premiumData} 
+          jobId={jobId} 
+        />
       )}
     </div>
   )

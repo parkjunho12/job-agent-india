@@ -181,6 +181,8 @@ function JobDetail() {
       alert('Failed to reanalyze: ' + error.message)
     }
   })
+
+
   
   // Match experiences mutation
   const matchExperiencesMutation = useMutation({
@@ -211,41 +213,8 @@ function JobDetail() {
         answers: {},
         cover_letter: ''
       })
-      
-      let coverLetter = null
-      
-      if (includeCoverLetter) {
-        setGenerationProgress({
-          step: 'Generating cover letter...',
-          current: ++currentStep,
-          total: totalSteps
-        })
-        
-        const coverLetterResponse = await generationApi.generateCoverLetter(parseInt(id))
-        coverLetter = coverLetterResponse.data.cover_letter
-      }
-      
+      let coverLetter = ''
       let answers = {}
-      if (job.custom_questions && job.custom_questions.length > 0) {
-        setGenerationProgress({
-          step: `Generating answers for ${job.custom_questions.length} questions...`,
-          current: ++currentStep,
-          total: totalSteps
-        })
-        
-        const answersResponse = await generationApi.generateAnswers(
-          parseInt(id),
-          job.custom_questions
-        )
-        answers = answersResponse.data.answers
-      }
-      
-      if (coverLetter || Object.keys(answers).length > 0) {
-        await applicationsApi.update(appResponse.data.id, {
-          cover_letter: coverLetter,
-          answers: answers
-        })
-      }
       
       return {
         application: appResponse.data,
@@ -281,8 +250,8 @@ function JobDetail() {
     }
   }
   
-  const handleGenerateClick = () => {
-    setShowGenerateOptions(true)
+  const handleReanalyzeClick = () => {
+    reanalyzeMutation.mutate()
   }
   
   const handleQuickApply = () => {
@@ -291,6 +260,7 @@ function JobDetail() {
   }
   
   const handleStartGeneration = () => {
+    setIncludeCoverLetter(false)
     generateApplicationMutation.mutate()
   }
   
@@ -455,22 +425,23 @@ function JobDetail() {
                   </a>
                 )}
                 <button 
-                  onClick={handleGenerateClick} 
-                  disabled={generateApplicationMutation.isPending}
+                  onClick={handleReanalyzeClick} 
+                  disabled={reanalyzeMutation.isPending}
                   className="btn btn-primary flex items-center gap-2"
                 >
-                  {generateApplicationMutation.isPending ? (
+                  {reanalyzeMutation.isPending ? (
                     <>
                       <Loader2 className="w-5 h-5 animate-spin" />
-                      Generating...
+                      Reanalyzing...
                     </>
                   ) : (
                     <>
                       <Sparkles className="w-5 h-5" />
-                      Generate Application
+                      Reanalyze JD
                     </>
                   )}
                 </button>
+                
               </>
             )}
           </div>
@@ -602,41 +573,6 @@ function JobDetail() {
             </div>
           </button>
           <button 
-            onClick={() => navigate(`/jobs/${id}/analysis`)}
-            className="card hover:shadow-lg transition-all"
-          >
-            
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
-                <Glasses className="w-5 h-5 text-red-600" />
-              </div>
-              <div className="text-left">
-                <p className="font-bold text-gray-900">Analyze Match</p>
-                <p className="text-xs text-gray-600">⚡ Get verdict in 30 sec</p>
-              </div>
-            </div>
-          </button>
-          <button 
-            onClick={() => reanalyzeMutation.mutate()} 
-            disabled={reanalyzeMutation.isPending} 
-             className="card hover:shadow-lg transition-all"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                {reanalyzeMutation.isPending ? (
-                  <Loader2 className="w-5 h-5 text-purple-600 animate-spin" />
-                ) : (
-                  <Brain className="w-5 h-5 text-purple-600" />
-                )}
-              </div>
-              <div className="text-left">
-                <p className="font-semibold text-gray-900">Reanalyze JD</p>
-                <p className="text-xs text-gray-600">Update AI analysis</p>
-              </div>
-            </div>
-          </button>
-          
-          <button 
             onClick={handleQuickApply}
             disabled={generateApplicationMutation.isPending}
             className="card hover:shadow-lg transition-all"
@@ -652,6 +588,21 @@ function JobDetail() {
               <div className="text-left">
                 <p className="font-semibold text-gray-900">Quick Apply</p>
                 <p className="text-xs text-gray-600">Fast generation</p>
+              </div>
+            </div>
+          </button>
+          <button 
+            onClick={() => navigate(`/jobs/${id}/analysis`)}
+            className="card hover:shadow-lg transition-all"
+          >
+            
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                <Brain className="w-5 h-5 text-red-600" />
+              </div>
+              <div className="text-left">
+              <p className="font-bold text-gray-900">Analyze & Generate</p>
+                <p className="text-xs text-gray-600">⚡ AI Match verdict + application</p>
               </div>
             </div>
           </button>

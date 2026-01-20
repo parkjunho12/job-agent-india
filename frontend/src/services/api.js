@@ -187,6 +187,9 @@ export const jobsApi = {
 
   reanalyze: (id) =>
     api.post(`/jobs/${id}/reanalyze`),
+  getCount: () => api.get('/jobs/stats/count'),
+  updateQuestions: (id, questions) => 
+    api.patch(`/jobs/${id}/questions`, questions),
 }
 
 // ============================================

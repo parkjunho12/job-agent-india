@@ -231,6 +231,64 @@ async def update_job(
     return job
 
 
+@router.patch("/{job_id}/questions")
+async def update_custom_questions(
+    job_id: int,
+    questions: List[str],
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Update custom questions for a job
+    
+    Request body: ["Question 1?", "Question 2?", "Question 3?"]
+    
+    Response: {
+        "success": true,
+        "message": "Updated 3 custom questions",
+        "questions": [...],
+        "job_id": 123
+    }
+    """
+    
+    job = db.query(Job).filter(
+        Job.id == job_id,
+        Job.user_id == current_user.id
+    ).first()
+    
+    if not job:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Job not found"
+        )
+    
+    # Convert simple string list to structured format
+    structured_questions = []
+    for i, question_text in enumerate(questions):
+        if question_text and question_text.strip():  # Skip empty strings
+            structured_questions.append({
+                "id": str(i + 1),
+                "text": question_text.strip(),
+                "type": "short_text",
+                "required": "true"
+            })
+    
+    # Update job
+    job.custom_questions = structured_questions
+    flag_modified(job, "custom_questions")
+    
+    db.commit()
+    db.refresh(job)
+    
+    return {
+        "success": True,
+        "message": f"Updated {len(structured_questions)} custom question{'s' if len(structured_questions) != 1 else ''}",
+        "questions": structured_questions,
+        "job_id": job_id,
+        "count": len(structured_questions)
+    }
+
+
 @router.delete("/{job_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_job(
     job_id: int,

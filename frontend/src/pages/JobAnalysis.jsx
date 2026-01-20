@@ -189,7 +189,13 @@ function JobAnalysis() {
         <VerdictDisplay 
           verdictData={verdictData}
           isPremium={!!verdictData?.is_premium}
+          job={job}
           jobId={jobId}
+          onJobUpdate={(updatedJob) => {
+            // Invalidate queries to refresh
+            queryClient.invalidateQueries(['job', jobId])
+            queryClient.invalidateQueries(['verdict', jobId])
+          }}
         />
 
         {/* Action Buttons */}

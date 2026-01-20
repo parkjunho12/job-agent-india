@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { useEffect } from 'react'
 import { 
   TrendingUp, TrendingDown, Clock, Target, 
   CheckCircle, XCircle, AlertTriangle, BarChart3 
@@ -16,6 +17,13 @@ function Stats() {
     queryKey: ['stats', 'decisions'],
     queryFn: () => api.get('/analysis/stats/decisions').then(res => res.data)
   })
+
+  useEffect(() => {
+    const isDismissed = localStorage.getItem('onboarding_checklist_dismissed')
+    if (!isDismissed) {
+      localStorage.setItem('onboarding_checklist_dismissed', 'true')
+    }
+  }, [])
 
   if (isLoading) {
     return (
