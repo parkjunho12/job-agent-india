@@ -95,53 +95,7 @@ function JobAnalysis() {
   }
 
   // verdict가 아직 없을 때(대개 404) → 분석 시작 UI
-  if (verdictQuery.isError && !verdictQuery.data) {
-    return (
-        <div className="min-h-screen bg-gray-50">
-            {/* Header */}
-      <div className="bg-white border-b">
-        <div className="max-w-6xl mx-auto px-4 py-6">
-          <button 
-            onClick={() => navigate(`/jobs/${jobId}`)}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            Back to Jobs
-          </button>
-
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                {job.title}
-              </h1>
-              <div className="flex items-center gap-4 text-gray-600">
-                <span>{job.company}</span>
-                <span>•</span>
-                <span>{job.location}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center max-w-md mx-auto p-8">
-          <AlertCircle className="w-12 h-12 text-yellow-600 mx-auto mb-4" />
-          <p className="text-gray-800 font-semibold mb-2">Analysis Not Started</p>
-          <p className="text-gray-600 mb-6">
-            This job hasn't been analyzed yet. Click below to analyze it.
-          </p>
-          <button
-            onClick={() => analyzeMutation.mutate()}
-            disabled={analyzeMutation.isPending}
-            className="btn btn-primary"
-          >
-            {analyzeMutation.isPending ? 'Analyzing...' : 'Analyze Job'}
-          </button>
-        </div>
-      </div>
-      </div>
-    )
-  }
+  
 
   // verdict 데이터 (캐시 or 방금 분석 결과)
   const verdictData = verdictQuery.data
@@ -170,8 +124,8 @@ function JobAnalysis() {
                 <span>{job.location}</span>
               </div>
             </div>
-
-            <button 
+            {verdictData &&(
+              <button 
               onClick={handleReanalyze}
               disabled={analyzeMutation.isPending}
               className="btn btn-secondary flex items-center gap-2"
@@ -179,6 +133,8 @@ function JobAnalysis() {
               <RefreshCw className={`w-4 h-4 ${analyzeMutation.isPending ? 'animate-spin' : ''}`} />
               Re-analyze
             </button>
+            )}
+
           </div>
         </div>
       </div>
@@ -197,9 +153,9 @@ function JobAnalysis() {
             queryClient.invalidateQueries(['verdict', jobId])
           }}
         />
-
         {/* Action Buttons */}
-        <div className="mt-8 flex gap-4 justify-center">
+        {verdictData &&(
+          <div className="mt-8 flex gap-4 justify-center">
           <button 
             onClick={() => markDecisionMutation.mutate('skipped')}
             disabled={markDecisionMutation.isPending}
@@ -227,6 +183,7 @@ function JobAnalysis() {
             Mark as Applied
           </button>
         </div>
+        )}
 
         {/* Job Description */}
         <details className="mt-8 bg-white rounded-xl p-6 border-2 border-gray-200">

@@ -1,24 +1,79 @@
 import { useState } from 'react'
-import { CheckCircle, AlertTriangle, XCircle, ArrowRight, Lock, Zap, Target, Edit } from 'lucide-react'
+import { CheckCircle, AlertTriangle, XCircle, ArrowRight, Lock, Zap, Target, Edit, Loader2, Loader } from 'lucide-react'
 import UnlockPremiumCard from './UnlockPremiumCard'
 import QuickApplyCard from './QuickApplyCard'
 import AIGenerationHub from './AIGenerationHub'
 import EditQuestionsCard from './EditQuestionsCard'
-import { jobsApi } from '../services/api'
+import { useQueryClient } from '@tanstack/react-query'
+import { analysisApi } from '../services/api'
 
 /**
  * VerdictCard Component
  */
-function VerdictCard({ verdict }) {
+function VerdictCard({ verdict, onAnalyze, analyzing = false }) {
   if (!verdict || !verdict.type) {
-    return (
-      <div className="bg-gray-100 border-2 border-gray-300 rounded-2xl p-8">
-        <div className="text-center">
-          <p className="text-gray-600">No verdict data available</p>
+      return (
+        <div className="bg-gradient-to-br from-primary-50 to-blue-50 border-2 border-primary-200 rounded-2xl p-8 shadow-lg">
+          <div className="flex items-start gap-4">
+            <div className="w-14 h-14 bg-white rounded-xl flex items-center justify-center flex-shrink-0 border border-primary-200">
+              <Target className="w-7 h-7 text-primary-700" />
+            </div>
+
+            <div className="flex-1">
+              <h2 className="text-xl font-bold text-gray-900 mb-2">
+                Analysis needed to get your verdict
+              </h2>
+
+              <p className="text-gray-700 mb-4">
+                We don’t have a verdict for this job yet. Run the analysis to see:
+                ATS risk, recruiter fit, experience match, and recommended next steps.
+              </p>
+
+              <div className="bg-white border border-gray-200 rounded-xl p-4 mb-4">
+                <div className="flex items-start gap-3">
+                  <Zap className="w-5 h-5 text-primary-700 mt-0.5" />
+                  <div>
+                    <p className="font-semibold text-gray-900">
+                      This action uses 1 credit
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      We’ll start the analysis immediately and show the results on this page.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button
+                  onClick={onAnalyze}
+                  disabled={!onAnalyze || analyzing}
+                  className="btn btn-primary w-full flex items-center justify-center gap-2"
+                >
+                  {analyzing ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Analyzing...
+                      <>
+                    </>
+                    </>
+                  ) : (
+                    <>
+                      <Target className="w-4 h-4" />
+                      Analyze now
+                    </>
+                  )}
+                </button>
+
+              </div>
+
+              <p className="text-xs text-gray-500 mt-3">
+                Tip: If the job description is incomplete, update it first for more accurate results.
+              </p>
+            </div>
+          </div>
         </div>
-      </div>
-    )
-  }
+      )
+    }
 
   const getVerdictStyle = (type) => {
     const styles = {
@@ -344,13 +399,33 @@ function CustomTipsCard({ tips }) {
 function VerdictDisplay({ verdictData, jobId, job, onJobUpdate }) {
   const [isEditingQuestions, setIsEditingQuestions] = useState(false)
   const [currentJob, setCurrentJob] = useState(job)
+  const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const queryClient = useQueryClient()
+
+
+  const handleAnalyze = async () => {
+    try {
+      setIsAnalyzing(true)
+      // 예: 서버에서 분석 실행 (endpoint는 프로젝트에 맞게 수정)
+      const data = await analysisApi.analyzeJob(jobId)
+
+      // 분석 후 부모/상위에서 verdictData를 다시 받아오게 하는 방식이면
+      // 여기서는 window reload 대신 onJobUpdate나 refetch trigger가 필요함.
+      // 가장 간단히는: onJobUpdate 콜백이 있으면 호출하거나,
+      // 상위에서 query invalidation을 하도록 설계.
+      queryClient.setQueryData(['analysis', jobId], data)
+    } catch (e) {
+      console.error(e)
+      alert('Analysis failed. Please try again.')
+    } finally {
+      setIsAnalyzing(false)
+    }
+  }
+
   
   if (!verdictData) {
     return (
-      <div className="bg-yellow-50 border-2 border-yellow-300 rounded-xl p-8 text-center">
-        <p className="text-yellow-800 font-semibold mb-2">⚠️ No Analysis Data</p>
-        <p className="text-gray-600">Please analyze this job first</p>
-      </div>
+      <VerdictCard verdict={verdictData?.verdict} onAnalyze={handleAnalyze} analyzing={isAnalyzing} />
     )
   }
 
@@ -389,9 +464,7 @@ function VerdictDisplay({ verdictData, jobId, job, onJobUpdate }) {
       {/* FREE CONTENT */}
       
       {/* 1. Main Verdict */}
-      {verdictData.verdict && (
-        <VerdictCard verdict={verdictData.verdict} />
-      )}
+      <VerdictCard verdict={verdictData.verdict} />
 
       {/* 2. Quick Apply (if strong match) */}
       {shouldShowQuickApply && (

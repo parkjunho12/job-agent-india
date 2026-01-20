@@ -347,11 +347,25 @@ function AddJobModal({ isOpen, onClose, onSuccess }) {
               />
             </div>
 
+            {/* Description */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Job Description *
+              </label>
+              <textarea
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                className="input w-full"
+                rows={6}
+                placeholder="Paste the job description here..."
+              />
+            </div>
+
             {/* Location & Job Type */}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Location
+                  Location (optional)
                 </label>
                 <input
                   type="text"
@@ -363,7 +377,7 @@ function AddJobModal({ isOpen, onClose, onSuccess }) {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Job Type
+                  Job Type (optional)
                 </label>
                 <select
                   value={formData.job_type}
@@ -395,19 +409,6 @@ function AddJobModal({ isOpen, onClose, onSuccess }) {
               />
             </div>
 
-            {/* Description */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Job Description
-              </label>
-              <textarea
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="input w-full"
-                rows={6}
-                placeholder="Paste the job description here..."
-              />
-            </div>
 
             {/* Required Skills */}
             <div>
@@ -430,7 +431,7 @@ function AddJobModal({ isOpen, onClose, onSuccess }) {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Required Experience
+                  Required Experience (optional)
                 </label>
                 <input
                   type="text"
@@ -442,7 +443,7 @@ function AddJobModal({ isOpen, onClose, onSuccess }) {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Salary Range
+                  Salary Range (optional)
                 </label>
                 <input
                   type="text"
