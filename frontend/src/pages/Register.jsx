@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useMutation } from '@tanstack/react-query'
 import { authApi } from '../services/api'
 import { Mail, Lock, User, AlertCircle, Eye, EyeOff, Loader2, CheckCircle } from 'lucide-react'
+import Logo from '../components/Logo'
 
 function Register() {
   const navigate = useNavigate()
@@ -187,9 +188,7 @@ function Register() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 via-white to-success-50 py-12 px-4">
       <div className="max-w-md w-full">
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-gradient-to-br from-primary-500 to-success-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-            <span className="text-3xl">🚀</span>
-          </div>
+        <Logo variant="full" size="4xl" className="mb-4" />
           <h2 className="text-3xl font-bold text-gray-900 mb-2">Create Your Account</h2>
           <p className="text-gray-600">Start your AI-powered job application journey</p>
         </div>

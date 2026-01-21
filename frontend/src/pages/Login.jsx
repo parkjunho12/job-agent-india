@@ -4,6 +4,7 @@ import { useMutation } from '@tanstack/react-query'
 import { authApi } from '../services/api'
 import { Mail, Lock, AlertCircle, Eye, EyeOff, Loader2 } from 'lucide-react'
 import { useAuthStore } from '../stores/authStore'
+import Logo from '../components/Logo'
 
 function Login() {
   const navigate = useNavigate()
@@ -107,9 +108,7 @@ function Login() {
       <div className="max-w-md w-full">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-gradient-to-br from-primary-500 to-success-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-            <span className="text-3xl">🎯</span>
-          </div>
+          <Logo variant="full" size="4xl" className="mb-4" />
           <h2 className="text-3xl font-bold text-gray-900 mb-2">Welcome Back</h2>
           <p className="text-gray-600">Sign in to continue your job application journey</p>
         </div>

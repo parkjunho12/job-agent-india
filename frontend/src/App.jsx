@@ -25,6 +25,8 @@ import Billing from './pages/Billing'
 import BillingSuccess from './pages/BillingSuccess'
 import JobAnalysis from './pages/JobAnalysis'
 import Stats from './pages/Stats'
+import TermsOfService from './pages/TermsOfService'
+import PrivacyPolicy from './pages/PrivacyPolicy'
 
 
 // Components
@@ -82,6 +84,9 @@ function App() {
           {/* OAuth Callbacks */}
           <Route path="/auth/google/callback" element={<GoogleCallback />} />
           <Route path="/auth/github/callback" element={<GitHubCallback />} />
+
+          <Route path="/terms" element={<TermsOfService />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
           
           
           {/* Protected Routes */}

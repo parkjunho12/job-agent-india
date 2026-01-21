@@ -14,6 +14,7 @@ import {
   Menu,
   X
 } from 'lucide-react'
+import Logo from "./Logo"
 
 function Layout() {
   const navigate = useNavigate()
@@ -46,7 +47,7 @@ function Layout() {
         <div className="flex items-center justify-between p-4">
           {/* Logo */}
           <div className="flex items-center gap-2">
-            <Sparkles className="w-6 h-6 text-primary-500" />
+          <Logo variant="full" size="md" />
             <h1 className="text-lg font-bold text-gray-900">Job Agent</h1>
           </div>
           
