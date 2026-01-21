@@ -100,7 +100,7 @@ async def analyze_job_match(
         is_premium = subscription and subscription.plan.value in ["basic", "pro"]
         
         # Check if THIS job has been unlocked
-        job_premium_unlocked = job.is_premium_unlocked if hasattr(job, 'is_premium_unlocked') else False
+        job_premium_unlocked = True
         
         # Calculate verdict with access flags
         verdict_data = calculate_verdict(
@@ -123,6 +123,7 @@ async def analyze_job_match(
         job.ats_score = analysis_result.get("ats_score", 0)
         job.verdict_type = verdict_data["verdict"]["type"]
         job.analysis_completed = True
+        job.status = "analyzed"
         job.verdict_payload = verdict_data  # Cache entire response
         db.commit()
         
@@ -175,7 +176,7 @@ async def get_job_verdict(
     usage_service = UsageService(db)
     subscription = usage_service.get_user_subscription(current_user.id)
     is_premium = subscription and subscription.plan.value in ["basic", "pro"]
-    job_premium_unlocked = job.is_premium_unlocked if hasattr(job, 'is_premium_unlocked') else False
+    job_premium_unlocked = True
     
     # Update cached verdict with current access
     cached_verdict = job.verdict_payload.copy()

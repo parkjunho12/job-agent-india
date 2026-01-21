@@ -115,7 +115,6 @@ function Settings() {
       showMessage('error', error.response?.data?.detail || 'Failed to buy credits')
     }
   })
-  
 
   const subscribeBasicMutation = useMutation({
     mutationFn: () => billingApi.subscribeBasic(),
@@ -376,6 +375,22 @@ function Settings() {
                 )}
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {(currentPlan === 'free' || currentPlan === 'pay_per_job') && (
+                    <button
+                      className="btn btn-secondary flex items-center justify-center gap-2"
+                      disabled={buyCreditMutation.isPending}
+                      onClick={() => buyCreditMutation.mutate(1)}
+                    >
+                      {buyCreditMutation.isPending ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <>
+                          <Zap className="w-4 h-4" />
+                          Buy Credit ($2.99)
+                        </>
+                      )}
+                    </button>
+                  )}
 
                   {currentPlan !== 'pro' && (
                     <button

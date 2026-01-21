@@ -75,7 +75,7 @@ function JobDetail() {
         required: typeof q === 'object' ? String(q.required || false) : 'false'
       })),
       key_responsibilities: [...(job.key_responsibilities || [])],
-      required_experience: job.required_experience || '',
+      company_culture: job.company_culture || '',
       salary_range: job.salary_range || ''
     })
     setIsEditing(true)
@@ -799,15 +799,29 @@ function JobDetail() {
               {isEditing ? (
                 <>
                   <div>
-                    <label className="text-sm text-gray-600 block mb-1">Experience</label>
+                    <label className="text-sm text-gray-600 block mb-1">
+                      Company Culture
+                    </label>
                     <input
                       type="text"
-                      value={editedJob.required_experience}
-                      onChange={(e) => setEditedJob({ ...editedJob, required_experience: e.target.value })}
+                      value={editedJob.company_culture?.join(', ') || ''}
+                      onChange={(e) =>
+                        setEditedJob({
+                          ...editedJob,
+                          company_culture: e.target.value
+                            .split(',')
+                            .map(item => item.trim())
+                            .filter(Boolean),
+                        })
+                      }
                       className="input w-full"
-                      placeholder="e.g., 3-5 years"
+                      placeholder="e.g. diverse, collaborative, innovative, equal opportunities"
                     />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Separate values with commas
+                    </p>
                   </div>
+
                   <div>
                     <label className="text-sm text-gray-600 block mb-1">Salary</label>
                     <input
@@ -821,12 +835,18 @@ function JobDetail() {
                 </>
               ) : (
                 <>
-                  {job.required_experience && (
-                    <div>
-                      <p className="text-sm text-gray-600">Experience</p>
-                      <p className="font-medium text-gray-900">{job.required_experience}</p>
-                    </div>
-                  )}
+                 {job.company_culture && job.company_culture.length > 0 && (
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">Company Culture</p>
+                    <ul className="list-disc list-inside text-gray-900 space-y-1">
+                      {job.company_culture.map((item, idx) => (
+                        <li key={idx} className="font-medium">
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
                   {job.salary_range && (
                     <div>
                       <p className="text-sm text-gray-600">Salary</p>

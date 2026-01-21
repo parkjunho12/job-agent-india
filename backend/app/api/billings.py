@@ -534,8 +534,8 @@ async def unlock_job_premium(
     
     # Create Stripe checkout session
     frontend_url = settings.FRONTEND_URL or "http://localhost:5173"
-    success_url = f"{frontend_url}/jobs/{job.id}?unlock_success=true"
-    cancel_url = f"{frontend_url}/jobs/{job.id}?unlock_cancelled=true"
+    success_url = f"{frontend_url}/jobs/{job.id}/analysis?unlock_success=true"
+    cancel_url = f"{frontend_url}/jobs/{job.id}/analysis?unlock_cancelled=true"
     
     try:
         # Create checkout session for one-time payment
@@ -608,6 +608,7 @@ async def stripe_webhook(
             user_id = int(metadata.get("user_id"))
             
             job = db.query(Job).filter(Job.id == job_id).first()
+            
             if job:
                 job.is_premium_unlocked = True
                 job.premium_unlocked_at = datetime.now(timezone.utc)

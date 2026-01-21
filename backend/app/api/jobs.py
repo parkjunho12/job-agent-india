@@ -33,10 +33,11 @@ async def create_job(
     """
     usage_service = UsageService(db)
     # Check tier limits
+    count = db.query(Job).filter(Job.user_id == current_user.id).count()
     
-    can_analyze, reason, details = usage_service.can_analyze_job(current_user)
+    can_create, reason, details = usage_service.can_create_job(current_user, count)
     
-    if not can_analyze:
+    if not can_create:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=reason)
     
 

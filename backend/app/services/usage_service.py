@@ -101,6 +101,41 @@ class UsageService:
         subscription = self.get_or_create_subscription(user_id)
         return subscription.credits
     
+    def can_create_job(self, user: User, count: int) -> Tuple[bool, str, dict]:
+        """Check if user can analyze"""
+        subscription = self.get_or_create_subscription(user.id)
+        plan = subscription.plan
+        limits = get_plan_limits(plan)
+        counter = self.get_or_create_counter(user.id)
+        
+        details = {
+            "plan": plan.value,
+            "credits": subscription.credits,
+            "monthly_used": counter.analyses_count,
+            "monthly_limit": limits.analyses_per_month
+        }
+        
+        if plan == PlanType.FREE:
+            if count < 11:
+                return True, "Credit available", details
+            else:
+                return False, f"{count} Jobs are full. Upgrade to continue.", details
+        
+        if plan == PlanType.PAY_PER_JOB:
+            return True, "Credit available", details
+        
+        if plan == PlanType.BASIC:
+            if count < 51:
+                return True, "Monthly quota available", details
+            else:
+                return False, f"{count} Jobs are full. Upgrade to continue.", details
+            
+        
+        if plan == PlanType.PRO:
+            return True, "Monthly quota available", details
+        
+        return False, "Unknown plan", details
+    
     def can_analyze_job(self, user: User) -> Tuple[bool, str, dict]:
         """Check if user can analyze"""
         subscription = self.get_or_create_subscription(user.id)

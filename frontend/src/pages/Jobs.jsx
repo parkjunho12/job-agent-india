@@ -5,6 +5,7 @@ import { jobsApi } from '../services/api'
 import { Briefcase, MapPin, Calendar, Search, Filter, Plus, ExternalLink, X, Loader, AlertCircle } from 'lucide-react'
 
 function Jobs() {
+  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState('all')
@@ -24,6 +25,7 @@ function Jobs() {
     const matchesStatus = filterStatus === 'all' || job.status === filterStatus
     return matchesSearch && matchesStatus
   })
+  const [banner, setBanner] = useState(null)
   
   return (
     <div>
@@ -44,6 +46,25 @@ function Jobs() {
             Add Job Manually
           </button>
         </div>
+
+        {banner?.type === 'limit' && (
+          <div className="mb-4 rounded-xl border border-yellow-200 bg-yellow-50 p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="font-bold text-yellow-900">{banner.title}</p>
+                <p className="text-sm text-yellow-800">{banner.message}</p>
+                <div className="mt-3 flex gap-2">
+                  <button onClick={() => navigate('/billing')} className="btn btn-primary btn-sm">
+                    Upgrade / Buy Credits
+                  </button>
+                  <button onClick={() => setBanner(null)} className="btn btn-outline btn-sm">
+                    Dismiss
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         
         {/* Search & Filters */}
         <div className="flex flex-col md:flex-row gap-4">
@@ -92,11 +113,36 @@ function Jobs() {
           <Briefcase className="w-16 h-16 text-gray-300 mx-auto mb-4" />
           <h3 className="text-xl font-semibold text-gray-900 mb-2">No jobs found</h3>
           <p className="text-gray-600 mb-6">
-            {searchTerm ? 'Try adjusting your search' : 'Start by saving jobs from Naukri or LinkedIn'}
+            {searchTerm ? 'Try adjusting your search' : 'Start by saving jobs from all job portals'}
           </p>
-          <button className="btn btn-primary">
-            Install Extension
-          </button>
+          <div className="card text-center py-12">
+            <Briefcase className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">Add your first job</h3>
+            <p className="text-gray-600 mb-6">
+              Paste a job description or add a link. Once saved, you can analyze it and generate your application.
+            </p>
+
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <button
+                onClick={() => setShowAddModal(true)}
+                className="btn btn-primary"
+              >
+                Add Job Manually
+              </button>
+
+              <button
+                onClick={() => navigate('/extension')}
+                className="btn btn-outline"
+              >
+                Install Extension
+              </button>
+            </div>
+
+            <p className="text-xs text-gray-500 mt-4">
+              Tip: Manual add is fastest for your first job. The extension helps once you save jobs regularly.
+            </p>
+          </div>
+
         </div>
       ) : (
         <div className="space-y-4">
@@ -213,6 +259,7 @@ function Jobs() {
             queryClient.invalidateQueries(['jobs'])
             setShowAddModal(false)
           }}
+          onLimit={(payload) => setBanner(payload)}
         />
       )}
     </div>
@@ -220,7 +267,7 @@ function Jobs() {
 }
 
 // Add Job Modal Component
-function AddJobModal({ isOpen, onClose, onSuccess }) {
+function AddJobModal({ isOpen, onClose, onSuccess, onLimit }) {
   const [formData, setFormData] = useState({
     title: '',
     company: '',
@@ -265,26 +312,31 @@ function AddJobModal({ isOpen, onClose, onSuccess }) {
       console.error('Add job error:', err)
       
       // Parse error response
-      const errorDetail = err.response?.data?.detail
-      const statusCode = err.response?.status
+      const errorDetail = err.response?.data?.error
+      const statusCode = err.response?.data?.status_code
       
       // Check for tier limit errors
       if (statusCode === 403 || statusCode === 429) {
-        setError({
+        const payload = {
           type: 'limit',
           message: errorDetail || 'You have reached your plan limit',
-          action: 'upgrade'
-        })
+          action: 'upgrade',
+          title: 'You’ve hit your plan limit'
+        }
+        setError(payload)
+        onLimit?.(payload)
       } else if (statusCode === 400) {
         setError({
           type: 'validation',
           message: errorDetail || 'Please check your input and try again'
         })
+        onLimit?.(payload)
       } else {
         setError({
           type: 'error',
           message: errorDetail || 'Failed to save job. Please try again.'
         })
+        onLimit?.(payload)
       }
     } finally {
       setSaving(false)
@@ -493,79 +545,71 @@ function AddJobModal({ isOpen, onClose, onSuccess }) {
 // Error Message Component with Tier Limit Handling
 function ErrorMessage({ error, onClose }) {
   const navigate = useNavigate()
-  
   if (!error) return null
-  
+
   const isLimitError = error.type === 'limit'
-  
+
   return (
-    <div className={`mb-6 rounded-lg p-4 ${
-      isLimitError ? 'bg-yellow-50 border border-yellow-200' : 'bg-red-50 border border-red-200'
+    <div className={`mb-6 rounded-xl p-5 border ${
+      isLimitError ? 'bg-yellow-50 border-yellow-200' : 'bg-red-50 border-red-200'
     }`}>
-      <div className="flex items-start gap-3">
-        <div className="flex-shrink-0 mt-0.5">
-          {isLimitError ? (
-            <AlertCircle className="w-5 h-5 text-yellow-600" />
-          ) : (
-            <AlertCircle className="w-5 h-5 text-red-600" />
-          )}
-        </div>
-        
+      <div className="flex items-start justify-between gap-3">
         <div className="flex-1">
-          <h3 className={`font-semibold mb-1 ${
+          <h3 className={`font-bold text-lg mb-1 ${
             isLimitError ? 'text-yellow-900' : 'text-red-900'
           }`}>
-            {isLimitError ? '⚠️ Plan Limit Reached' : 'Error'}
+            {isLimitError ? 'Plan limit reached' : 'Something went wrong'}
           </h3>
-          
-          <p className={`text-sm mb-3 ${
+
+          <p className={`text-sm mb-4 ${
             isLimitError ? 'text-yellow-800' : 'text-red-800'
           }`}>
             {error.message}
           </p>
-          
-          {isLimitError && (
-            <div className="space-y-2">
-              <div className="bg-white rounded-md p-3 border border-yellow-200">
-                <p className="text-sm text-gray-700 mb-2">
-                  <strong>Free Plan Limits:</strong>
+
+          {isLimitError ? (
+            <>
+              <div className="bg-white rounded-lg p-4 border border-yellow-200 mb-4">
+                <p className="text-sm text-gray-700 font-semibold mb-2">
+                  You can’t add more jobs on the current plan.
                 </p>
                 <ul className="text-sm text-gray-600 space-y-1">
-                  <li>• 3 saved jobs per month</li>
-                  <li>• 5 AI-generated applications per month</li>
-                  <li>• Basic job analysis</li>
+                  <li>• Add unlimited saved jobs</li>
+                  <li>• Unlock more analyses & generations</li>
+                  <li>• Keep all your past jobs</li>
                 </ul>
               </div>
-              
-              <div className="flex gap-2">
+
+              <div className="flex flex-col sm:flex-row gap-2">
                 <button
                   onClick={() => {
                     onClose()
-                    navigate('/settings')
+                    navigate('/billing')
                   }}
-                  className="btn btn-primary text-sm py-2"
+                  className="btn btn-primary w-full"
                 >
-                  ✨ Upgrade to Pro
+                  Upgrade / Buy Credits
                 </button>
+
                 <button
-                  onClick={() => navigate('/jobs')}
-                  className="btn btn-secondary text-sm py-2"
+                  onClick={() => {
+                    onClose()
+                    navigate('/jobs')
+                  }}
+                  className="btn btn-outline w-full"
                 >
-                  View My Jobs
+                  View my jobs
                 </button>
               </div>
-              
-              <p className="text-xs text-gray-600 mt-2">
-                💡 <strong>Pro Plan</strong> includes unlimited jobs and AI generations for just £9/month
+
+              <p className="text-xs text-gray-600 mt-3">
+                Tip: If you only need to add 1 more job, a one-time credit pack may be cheaper than a subscription.
               </p>
-            </div>
-          )}
+            </>
+          ) : null}
         </div>
-        
-        <button
-          onClick={onClose}
-          className="flex-shrink-0 text-gray-400 hover:text-gray-600"
-        >
+
+        <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
           <X className="w-5 h-5" />
         </button>
       </div>

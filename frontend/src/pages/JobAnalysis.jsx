@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { 
@@ -13,6 +13,16 @@ function JobAnalysis() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
 
+  const isLimitError = (err) => {
+    const status = err?.response?.status
+    return status === 403 || status === 429
+  }
+  
+  const getErrorDetail = (err) => {
+    console.error('API Error:', err)
+    return err?.response?.data?.error || err?.message || 'Request failed'
+  }
+  const [limitBanner, setLimitBanner] = useState(null)
   // Fetch job details
 
   const { data: jobData, isLoading: jobLoading } = useQuery({
@@ -26,15 +36,41 @@ function JobAnalysis() {
     enabled: !!jobId,
     queryFn: async () => analysisApi.getVerdict(jobId)
     ,
-    retry: false // 404면 isError로 빠지게
+    retry: false, // 404면 isError로 빠지게
+    onError: (err) => {
+      if (isLimitError(err)) {
+        console.error('Limit error fetching verdict:', err)
+        setLimitBanner({
+          title: 'Premium analysis is locked',
+          message: getErrorDetail(err) || 'Upgrade or buy credits to view this analysis.',
+        })
+      }
+    }
   })
 
   // Analyze mutation (처음 분석 or 재분석 둘 다 사용)
   const analyzeMutation = useMutation({
-    mutationFn: async () => analysisApi.analyzeJob(jobId),
+    mutationFn: async () => {
+      setLimitBanner(null)
+      return analysisApi.analyzeJob(jobId)
+    },
     onSuccess: (data) => {
       // 분석 결과를 캐시에 즉시 반영
       queryClient.setQueryData(['analysis', jobId], data)
+      
+    },
+    onError: (err) => {
+      if (isLimitError(err)) {
+        setLimitBanner({
+          title: 'Not enough credits to run analysis',
+          message: getErrorDetail(err) || 'Upgrade or buy credits to analyze this job.',
+        })
+      } else {
+        setLimitBanner({
+          title: 'Analysis failed',
+          message: getErrorDetail(err),
+        })
+      }
     }
   })
 
@@ -49,6 +85,21 @@ function JobAnalysis() {
   // Re-analyze (버튼에서만 호출)
   const handleReanalyze = () => {
     analyzeMutation.mutate()
+  }
+
+  const onError = (err) => {
+    console.log('Analysis error:', err)
+    if (isLimitError(err)) {
+      setLimitBanner({
+        title: 'Not enough credits to run analysis',
+        message: getErrorDetail(err) || 'Upgrade or buy credits to analyze this job.',
+      })
+    } else {
+      setLimitBanner({
+        title: 'Analysis failed',
+        message: getErrorDetail(err),
+      })
+    }
   }
 
   // (선택) verdict가 404로 실패하면 자동으로 1회 분석 실행하고 싶을 때
@@ -139,6 +190,40 @@ function JobAnalysis() {
         </div>
       </div>
 
+      {limitBanner && (
+        <div className="max-w-6xl mx-auto px-4 pb-4">
+          <div className="rounded-xl border border-yellow-200 bg-yellow-50 p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1">
+                <p className="font-bold text-yellow-900">{limitBanner.title}</p>
+                <p className="text-sm text-yellow-800 mt-1">{limitBanner.message}</p>
+
+                <div className="mt-3 flex flex-col sm:flex-row gap-2">
+                  <button
+                    onClick={() => navigate('/billing')}
+                    className="btn btn-primary"
+                  >
+                    Upgrade / Buy Credits
+                  </button>
+                  <button
+                    onClick={() => setLimitBanner(null)}
+                    className="btn btn-outline"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+
+                <p className="text-xs text-yellow-700 mt-2">
+                  Tip: One analysis uses 1 credit. Upgrade for unlimited usage if you analyze multiple jobs daily.
+                </p>
+              </div>
+
+              <AlertCircle className="w-6 h-6 text-yellow-600 flex-shrink-0 mt-1" />
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Main Content */}
       <div className="max-w-6xl mx-auto px-4 py-8">
         {/* Verdict Display */}
@@ -149,9 +234,11 @@ function JobAnalysis() {
           jobId={jobId}
           onJobUpdate={(updatedJob) => {
             // Invalidate queries to refresh
+           
             queryClient.invalidateQueries(['job', jobId])
             queryClient.invalidateQueries(['verdict', jobId])
           }}
+          onError={onError}
         />
         {/* Action Buttons */}
         {verdictData &&(

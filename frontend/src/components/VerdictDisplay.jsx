@@ -396,7 +396,7 @@ function CustomTipsCard({ tips }) {
 /**
  * Main VerdictDisplay Component with AI Generation Hub
  */
-function VerdictDisplay({ verdictData, jobId, job, onJobUpdate }) {
+function VerdictDisplay({ verdictData, jobId, job, onJobUpdate, onError }) {
   const [isEditingQuestions, setIsEditingQuestions] = useState(false)
   const [currentJob, setCurrentJob] = useState(job)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
@@ -414,9 +414,10 @@ function VerdictDisplay({ verdictData, jobId, job, onJobUpdate }) {
       // 가장 간단히는: onJobUpdate 콜백이 있으면 호출하거나,
       // 상위에서 query invalidation을 하도록 설계.
       queryClient.setQueryData(['analysis', jobId], data)
+      onJobUpdate(data)
     } catch (e) {
-      console.error(e)
-      alert('Analysis failed. Please try again.')
+      onError(e)
+      
     } finally {
       setIsAnalyzing(false)
     }
@@ -535,12 +536,43 @@ function VerdictDisplay({ verdictData, jobId, job, onJobUpdate }) {
               <div className="mb-4">
                 <button
                   onClick={() => setIsEditingQuestions(true)}
-                  className="btn btn-outline w-full flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all"
+                  className="w-full rounded-xl border-2 border-primary-300 bg-primary-50 px-4 py-4 text-left shadow-md hover:shadow-lg transition-all"
                 >
-                  <Edit className="w-4 h-4" />
-                  Edit Questions ({currentJob.custom_questions?.length || 0})
+                  <div className="flex items-start gap-3">
+                    <div className="mt-0.5 w-10 h-10 bg-white rounded-lg flex items-center justify-center border border-primary-200 flex-shrink-0">
+                      <Edit className="w-5 h-5 text-primary-700" />
+                    </div>
+
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-base font-bold text-gray-900">
+                          Add application questions to generate better answers
+                        </p>
+                        <span className="text-xs font-semibold px-2 py-1 rounded-full bg-white border border-primary-200 text-primary-700">
+                          {currentJob.custom_questions?.length || 0} saved
+                        </span>
+                      </div>
+
+                      <p className="mt-1 text-sm text-gray-700">
+                        Copy questions from the application form, the AI Hub will use them to create job-specific responses.
+                      </p>
+
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <span className="text-xs px-2 py-1 rounded-full bg-white border border-gray-200 text-gray-700">
+                          Takes ~30 seconds
+                        </span>
+                        <span className="text-xs px-2 py-1 rounded-full bg-white border border-gray-200 text-gray-700">
+                          Improves answer quality
+                        </span>
+                        <span className="text-xs px-2 py-1 rounded-full bg-white border border-gray-200 text-gray-700">
+                          Works for all jobs
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                 </button>
               </div>
+
 
               <AIGenerationHub 
                 job={currentJob}
