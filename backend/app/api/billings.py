@@ -543,7 +543,7 @@ async def unlock_job_premium(
         db.commit()
     
     # Create Stripe checkout session
-    frontend_url = settings.FRONTEND_URL or "http://localhost:5173"
+    frontend_url = settings.FRONTEND_URL or "https://jobagent-career.com"
     success_url = f"{frontend_url}/jobs/{job.id}/analysis?unlock_success=true"
     cancel_url = f"{frontend_url}/jobs/{job.id}/analysis?unlock_cancelled=true"
     
