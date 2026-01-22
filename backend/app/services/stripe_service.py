@@ -23,6 +23,7 @@ class StripeService:
     PRICE_IDS = {
         "basic_monthly": settings.STRIPE_PRICE_BASIC_MONTHLY,
         "pro_monthly": settings.STRIPE_PRICE_PRO_MONTHLY,
+        "credit_single": settings.STRIPE_CREDIT_PRICE_ID
         # One-time payments don't need price IDs (created dynamically)
     }
     
@@ -37,6 +38,8 @@ class StripeService:
         """Get price ID for plan"""
         key = f"{plan}_monthly"
         return self.PRICE_IDS.get(key)
+    
+    
     
     def create_customer(self, email: str, name: Optional[str] = None, user_id: Optional[int] = None) -> stripe.Customer:
         """Create a Stripe customer"""
@@ -94,14 +97,16 @@ class StripeService:
         
         return payment_intent
     
-    def create_checkout_session_one_time(
+    def create_checkout_session_credits(
         self,
-        amount: float,
         customer_id: str,
         success_url: str,
         cancel_url: str,
+        price_id: str,
+        quantity: int,
+        user_id: int,
         description: str = "Job Analysis",
-        quantity: int = 1,
+        idempotency_key: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,  # ✅ 추가
     ) -> stripe.checkout.Session:
         """
@@ -109,31 +114,31 @@ class StripeService:
         """
         
         # Convert to cents
-        amount_cents = int(amount * 100)
         
         safe_metadata = {k: str(v) for k, v in (metadata or {}).items()}
         
-        session = stripe.checkout.Session.create(
-            customer=customer_id,
-            payment_method_types=["card"],
-            line_items=[{
-                "price_data": {
-                    "currency": "usd",
-                    "product_data": {
-                        "name": description,
-                        "description": "AI-powered job analysis with match scoring and gap analysis"
-                    },
-                    "unit_amount": amount_cents,
-                },
+        params = {
+            "customer": customer_id,
+            "payment_method_types": ["card"],
+            "mode": "payment",
+            "success_url": success_url,
+            "cancel_url": cancel_url,
+            "line_items": [{
+                "price": price_id,
                 "quantity": quantity,
             }],
-            mode="payment",
-            success_url=success_url,
-            cancel_url=cancel_url,
-            metadata=safe_metadata,  # ✅ 전달
-        )
+            "metadata": safe_metadata,
+            # webhook에서 안전하게 처리하려면 payment_intent에도 metadata 복제 권장
+            "payment_intent_data": {
+                "metadata": safe_metadata
+            }
+        }
         
-        return session
+        if idempotency_key:
+            return stripe.checkout.Session.create(**params, idempotency_key=idempotency_key)
+
+        
+        return stripe.checkout.Session.create(**params)
     
     # ============================================
     # Subscription (Pro Plan)

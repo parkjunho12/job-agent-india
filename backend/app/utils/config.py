@@ -104,6 +104,7 @@ class Settings(BaseSettings):
     
     STRIPE_PRICE_BASIC_MONTHLY: str = "price_basic_xxx"
     STRIPE_PRICE_PRO_MONTHLY: str = "price_pro_xxx"
+    STRIPE_CREDIT_PRICE_ID: str = "price_credit_xxx"
     
     model_config = SettingsConfigDict(
                env_file=".env",

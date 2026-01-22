@@ -86,41 +86,51 @@ async def buy_credit(
             detail="Quantity must be between 1 and 100"
         )
     
+    if not settings.STRIPE_CREDIT_PRICE_ID:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Stripe credit price is not configured"
+        )
+    
     usage_service = UsageService(db)
     subscription = usage_service.get_or_create_subscription(current_user.id)
     
     # Create Stripe customer if not exists
     if not subscription.stripe_customer_id:
+        idem_key = f"buy_credit:{current_user.id}:{quantity}"
+        
         customer = stripe_service.create_customer(
             email=current_user.email,
             name=current_user.full_name,
-            user_id=current_user.id
+            user_id=current_user.id,
         )
         subscription.stripe_customer_id = customer.id
         db.commit()
     
-    # Calculate amount
-    amount = 2.99 * quantity
     
     # Create checkout session
-    frontend_url = settings.FRONTEND_URL or "http://localhost:5173"
+    frontend_url = settings.FRONTEND_URL or "https://jobagent-career.com"
     success_url = f"{frontend_url}/billing/success?session_id={{CHECKOUT_SESSION_ID}}"
     cancel_url = f"{frontend_url}/billing"
     
     try:
-        session = stripe_service.create_checkout_session_one_time(
-            amount=amount,
+        # (권장) idempotency key: 같은 유저가 같은 수량으로 연타해도 세션이 폭증하지 않게
+        idem_key = f"buy_credit:{current_user.id}:{quantity}"
+        
+        session = stripe_service.create_checkout_session_credits(
             customer_id=subscription.stripe_customer_id,
             success_url=success_url,
             cancel_url=cancel_url,
+            price_id=settings.STRIPE_CREDIT_PRICE_ID,
+            quantity=quantity,
+            user_id=current_user.id,
             description=f"Job Analysis Credit {'(x' + str(quantity) + ')' if quantity > 1 else ''}",
-            quantity=quantity
+            idempotency_key=idem_key,
         )
         
         return {
             "checkout_url": session.url,
             "session_id": session.id,
-            "amount": amount,
             "credits": quantity
         }
     except Exception as e:
@@ -538,34 +548,25 @@ async def unlock_job_premium(
     cancel_url = f"{frontend_url}/jobs/{job.id}/analysis?unlock_cancelled=true"
     
     try:
-        # Create checkout session for one-time payment
-        session = stripe_service.create_checkout_session_one_time(
-        amount=2.99,
-        customer_id=subscription.stripe_customer_id,
-        success_url=success_url,
-        cancel_url=cancel_url,
-        description=f"Premium Analysis: {job.title}",
-        quantity=1,
-        metadata={
-            "type": "job_premium_unlock",
-            "quantity": 1,
-            "user_id": current_user.id,
-            "job_id": job.id
-        }
-    )
+        # (권장) idempotency key: 같은 유저가 같은 수량으로 연타해도 세션이 폭증하지 않게
+        idem_key = f"buy_credit:{current_user.id}:{quantity}"
         
-        # Create pending unlock record
-        # (You'll need to create a PremiumUnlock model/table)
-        # For now, we'll track via transaction metadata
+        session = stripe_service.create_checkout_session_credits(
+            customer_id=subscription.stripe_customer_id,
+            success_url=success_url,
+            cancel_url=cancel_url,
+            price_id=settings.STRIPE_CREDIT_PRICE_ID,
+            quantity=quantity,
+            user_id=current_user.id,
+            description=f"Job Analysis Credit {'(x' + str(quantity) + ')' if quantity > 1 else ''}",
+            idempotency_key=idem_key,
+        )
         
         return {
             "checkout_url": session.url,
             "session_id": session.id,
-            "job_id": job.id,
-            "amount": 2.99,
-            "currency": "USD"
+            "credits": quantity
         }
-        
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
