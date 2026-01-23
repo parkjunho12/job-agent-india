@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '../stores/authStore'
 import { billingApi, authApi } from '../services/api'
 import { CheckCircle, Loader2, ArrowRight, CreditCard } from 'lucide-react'
+import analytics from '../services/analytics'
 
 function BillingSuccess() {
   const navigate = useNavigate()
@@ -63,6 +64,8 @@ function BillingSuccess() {
         // Fetch latest user (source of truth for authStore tier)
         const me = await authApi.me()
         updateUser(me.data)
+
+        analytics.trackEvent('payment_success')
 
         // Keep React Query cache consistent too (optional but recommended)
         queryClient.setQueryData(['user'], me)

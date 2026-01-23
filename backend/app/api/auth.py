@@ -264,6 +264,8 @@ async def oauth_google(data: OAuthLoginRequest, response: Response, db: Session 
         (User.email == user_info["email"]) | (User.oauth_id == user_info["id"])
     ).first()
     
+    is_new_user = False
+    
     if user:
         if not user.oauth_id:
             user.oauth_id = user_info["id"]
@@ -275,6 +277,7 @@ async def oauth_google(data: OAuthLoginRequest, response: Response, db: Session 
         db.commit()
         db.refresh(user)
     else:
+        is_new_user = True
         user = User(
             email=user_info["email"],
             full_name=user_info["name"],
@@ -315,7 +318,9 @@ async def oauth_google(data: OAuthLoginRequest, response: Response, db: Session 
     return {
         "access_token": access_token,
         "token_type": "bearer",
-        "user": UserResponse.from_user(user)
+        "user": UserResponse.from_user(user),
+        "is_new_user": is_new_user,
+        "provider": "google"   
     }
 
 
@@ -330,6 +335,8 @@ async def oauth_github(data: OAuthLoginRequest, response: Response, db: Session 
         (User.email == user_info["email"]) | (User.oauth_id == user_info["id"])
     ).first()
     
+    is_new_user = False
+    
     if user:
         if not user.oauth_id:
             user.oauth_id = user_info["id"]
@@ -341,6 +348,7 @@ async def oauth_github(data: OAuthLoginRequest, response: Response, db: Session 
         db.commit()
         db.refresh(user)
     else:
+        is_new_user = True
         user = User(
             email=user_info["email"],
             full_name=user_info["name"],
@@ -381,7 +389,9 @@ async def oauth_github(data: OAuthLoginRequest, response: Response, db: Session 
     return {
         "access_token": access_token,
         "token_type": "bearer",
-        "user": UserResponse.from_user(user)
+        "user": UserResponse.from_user(user),
+        "is_new_user": is_new_user,
+        "provider": "github"   
     }
 
 

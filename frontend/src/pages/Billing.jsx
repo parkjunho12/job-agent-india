@@ -7,6 +7,7 @@ import {
   Calendar, DollarSign, TrendingUp, Zap, ArrowRight,
   Download, ExternalLink
 } from 'lucide-react'
+import analytics from '../services/analytics'
 
 function Billing() {
   const navigate = useNavigate()
@@ -57,6 +58,7 @@ function Billing() {
   const buyCreditMutation = useMutation({
     mutationFn: (quantity) => billingApi.buyCredit(quantity),
     onSuccess: (data) => {
+        analytics.trackCTAClick('Buy Credit')
       window.location.href = data.data.checkout_url
     },
     onError: (error) => {
@@ -67,6 +69,7 @@ function Billing() {
   const subscribeBasicMutation = useMutation({
     mutationFn: () => billingApi.subscribeBasic(),
     onSuccess: (data) => {
+        analytics.trackCTAClick('Subscribe Basic')
       window.location.href = data.data.checkout_url
     },
     onError: (error) => {
@@ -77,6 +80,7 @@ function Billing() {
   const subscribeProMutation = useMutation({
     mutationFn: () => billingApi.subscribePro(),
     onSuccess: (data) => {
+        analytics.trackCTAClick('Subscribe Pro')
       window.location.href = data.data.checkout_url
     },
     onError: (error) => {
@@ -88,6 +92,7 @@ function Billing() {
     mutationFn: () => billingApi.cancelSubscription(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['billing', 'subscription'] })
+      analytics.trackCTAClick('Subscribe Cancel')
       showMessage('success', 'Subscription will be canceled at period end')
     },
     onError: (error) => {
@@ -99,6 +104,7 @@ function Billing() {
     mutationFn: () => billingApi.resumeSubscription(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['billing', 'subscription'] })
+      analytics.trackCTAClick('Subscribe Resume')
       showMessage('success', 'Subscription resumed successfully')
     },
     onError: (error) => {

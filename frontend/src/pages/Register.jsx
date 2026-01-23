@@ -4,6 +4,7 @@ import { useMutation } from '@tanstack/react-query'
 import { authApi } from '../services/api'
 import { Mail, Lock, User, AlertCircle, Eye, EyeOff, Loader2, CheckCircle } from 'lucide-react'
 import Logo from '../components/Logo'
+import analytics from '../services/analytics'
 
 function Register() {
   const navigate = useNavigate()
@@ -22,7 +23,12 @@ function Register() {
   
   const registerMutation = useMutation({
     mutationFn: (data) => authApi.register(data.email, data.password, data.fullName),
-    onSuccess: () => {
+    onSuccess: (res) => {
+      const user = res.data
+      analytics.trackSignup(user.id)
+      analytics.trackEvent('register', 'signup', 'account_created', {
+        data: { user_id: user.id }
+      })
       navigate('/register-success')
     },
     onError: (error) => {

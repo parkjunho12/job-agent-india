@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { jobsApi } from '../services/api'
 import { Briefcase, MapPin, Calendar, Search, Filter, Plus, ExternalLink, X, Loader, AlertCircle } from 'lucide-react'
+import analytics from '../services/analytics'
 
 function Jobs() {
   const navigate = useNavigate()
@@ -306,7 +307,8 @@ function AddJobModal({ isOpen, onClose, onSuccess, onLimit }) {
         status: 'saved'
       }
       
-      await jobsApi.create(payload)
+      const response = await jobsApi.create(payload)
+      analytics.trackJobAdded(response.data.id)
       onSuccess()
     } catch (err) {
       console.error('Add job error:', err)

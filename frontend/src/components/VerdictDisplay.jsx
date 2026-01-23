@@ -6,6 +6,7 @@ import AIGenerationHub from './AIGenerationHub'
 import EditQuestionsCard from './EditQuestionsCard'
 import { useQueryClient } from '@tanstack/react-query'
 import { analysisApi } from '../services/api'
+import analytics from '../services/analytics'
 
 /**
  * VerdictCard Component
@@ -406,6 +407,7 @@ function VerdictDisplay({ verdictData, jobId, job, onJobUpdate, onError }) {
   const handleAnalyze = async () => {
     try {
       setIsAnalyzing(true)
+      analytics.trackCTAClick('Analyze')
       // 예: 서버에서 분석 실행 (endpoint는 프로젝트에 맞게 수정)
       const data = await analysisApi.analyzeJob(jobId)
 

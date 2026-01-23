@@ -55,7 +55,7 @@ def init_db():
     Initialize database - create all tables
     """
     # Import all models here to ensure they're registered
-    from app.models import user, job, experience, application
+    from app.models import user, job, experience, application, analytics, billing, verdict
     
     Base.metadata.create_all(bind=engine)
     print("✓ Database tables created")

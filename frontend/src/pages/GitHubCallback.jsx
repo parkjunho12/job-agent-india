@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { authApi } from '../services/api'
 import { Loader2, AlertCircle } from 'lucide-react'
 import { useAuthStore } from '../stores/authStore'
+import analytics from '../services/analytics'
 
 export function GitHubCallback() {
     const [searchParams] = useSearchParams()
@@ -34,6 +35,19 @@ export function GitHubCallback() {
       try {
         const redirectUri = `${window.location.origin}/auth/github/callback`
         const response = await authApi.oauthGitHubLogin(code, redirectUri)
+
+        const resp = response.data
+
+        if (resp.is_new_user) {
+            analytics.trackSignup(resp.user.id)               // signup 전환
+            analytics.trackEvent('signup', 'signup', 'account_created', {
+              data: { provider: resp.provider, user_id: resp.user.id }
+            })
+          } else {
+            analytics.trackEvent('login', 'auth', 'login_success', {
+              data: { provider: resp.provider, user_id: resp.user.id }
+            })
+          }
         
         // Store token
         localStorage.setItem('authToken', response.data.access_token)

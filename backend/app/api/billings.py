@@ -22,6 +22,7 @@ from app.models.billing import (
 from app.api.auth import get_current_user
 from app.services.stripe_service import stripe_service
 from app.services.usage_service import UsageService, QuotaExceededError
+from app.services.analytics_service import AnalyticsService
 
 from app.utils.config import settings
 
@@ -666,8 +667,7 @@ async def stripe_webhook(
             customer_id = session.customer
             subscription_id = getattr(session, 'subscription', None)
             
-            print(f"✅ Subscription checkout completed: customer={customer_id}, subscription={subscription_id}")
-            # The subscription.created event will handle the actual setup
+           # The subscription.created event will handle the actual setup
     
     # ============================================
     # Handle Subscription Created
@@ -676,7 +676,7 @@ async def stripe_webhook(
         
         subscription_data = stripe_service.parse_subscription_from_event(event)
         
-        print(f"🔔 Webhook: customer.subscription.created - data={subscription_data}")
+        
         if subscription_data:
             subscription = db.query(Subscription).filter(
                 Subscription.stripe_customer_id == subscription_data["customer_id"]
@@ -695,6 +695,7 @@ async def stripe_webhook(
                     plan = PlanType.PRO
                 else:
                     plan = PlanType.FREE
+                
                     
                 
                 # Update subscription
@@ -708,6 +709,7 @@ async def stripe_webhook(
                     current_period_end=subscription_data["current_period_end"],
                     cancel_at_period_end=subscription_data["cancel_at_period_end"]
                 )
+                
                 
                 # 🔥 CRITICAL: Commit the changes!
                 db.commit()

@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import VerdictDisplay from '../components/VerdictDisplay'
 import {jobsApi, analysisApi} from '../services/api'
+import analytics from '../services/analytics'
 
 function JobAnalysis() {
   const { jobId } = useParams()
@@ -56,6 +57,8 @@ function JobAnalysis() {
     },
     onSuccess: (data) => {
       // 분석 결과를 캐시에 즉시 반영
+      
+      analytics.trackAnalysis(data.job_id, data.isPremium)
       queryClient.setQueryData(['analysis', jobId], data)
       
     },
@@ -84,6 +87,7 @@ function JobAnalysis() {
 
   // Re-analyze (버튼에서만 호출)
   const handleReanalyze = () => {
+    analytics.trackCTAClick('Re-Analyze')
     analyzeMutation.mutate()
   }
 

@@ -3,9 +3,11 @@ Application configuration using Pydantic settings
 """
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from typing import List, Optional
+from typing import List, Optional, Set
 from functools import lru_cache
 from pathlib import Path
+from pydantic import Field, field_validator
+
 
 BASE_DIR = Path(__file__).resolve().parents[2]   # backend/ 기준 (app/core/config.py 라면)
 ENV_PATH = BASE_DIR / ".env"
@@ -105,6 +107,9 @@ class Settings(BaseSettings):
     STRIPE_PRICE_BASIC_MONTHLY: str = "price_basic_xxx"
     STRIPE_PRICE_PRO_MONTHLY: str = "price_pro_xxx"
     STRIPE_CREDIT_PRICE_ID: str = "price_credit_xxx"
+    
+    ADMIN_EMAILS: Set[str] = Field(default_factory=set)
+
     
     model_config = SettingsConfigDict(
                env_file=".env",

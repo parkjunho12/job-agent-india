@@ -5,6 +5,7 @@ import GenerationCard from './GenerationCard'
 import CoverLetterModal from './CoverLetterModal'
 import QuestionAnswersModal from './QuestionAnswersModal'
 import { jobsApi, generationApi, applicationsApi, experiencesApi } from '../services/api'
+import analytics from '../services/analytics'
 
 /**
  * AIGenerationHub Component
@@ -142,6 +143,7 @@ function AIGenerationHub({ job, jobId }) {
         current: totalSteps,
         total: totalSteps
       })
+      
       
       // Clear progress after 2 seconds
       setTimeout(() => {
