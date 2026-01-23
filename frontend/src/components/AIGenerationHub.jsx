@@ -30,7 +30,7 @@ function AIGenerationHub({ job, jobId }) {
     setIsGeneratingCover(true)
     try {
       const response = await generationApi.generateCoverLetter(parseInt(jobId))
-
+      analytics.trackGeneration(jobId, 'cover_letter')
       setCoverLetter(response.data.cover_letter)
     } catch (error) {
       console.error('Failed to generate cover letter:', error)
@@ -53,7 +53,8 @@ function AIGenerationHub({ job, jobId }) {
         parseInt(jobId),
         job.custom_questions
       )
-      console.log('Generated answers:', response.data.answers)
+      analytics.trackGeneration(jobId, 'answers')
+
       setAnswers(response.data.answers)
     } catch (error) {
       console.error('Failed to generate answers:', error)
@@ -132,6 +133,7 @@ function AIGenerationHub({ job, jobId }) {
         current: ++currentStep,
         total: totalSteps
       })
+      analytics.trackGeneration(jobId, 'complete_package')
       
       // Simulate CV optimization
       await new Promise(resolve => setTimeout(resolve, 10000))

@@ -329,8 +329,10 @@ export const billingApi = {
   canAnalyze: () => api.get('/billing/can-analyze'),
   
   // Buy credits (one-time payment)
-  buyCredit: (quantity = 1) => 
-    api.post('/billing/buy-credit', null, { params: { quantity } }),
+  buyCredit: (quantity = 1) => {
+    const request_id = crypto.randomUUID()
+    return api.post('/billing/buy-credit', null, { params: { quantity, request_id } })
+  },
   
   // Subscribe to Basic
   subscribeBasic: () => api.post('/billing/subscribe-basic'),

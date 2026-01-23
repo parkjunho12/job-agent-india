@@ -37,6 +37,12 @@ class Analytics {
           'X-Session-ID': this.sessionId
         }
       })
+
+      console.log(
+        '[Analytics] Tracked',
+        eventType
+      )
+
     } catch (error) {
       // Silent fail - don't disrupt user experience
       console.error('Analytics tracking failed:', error)

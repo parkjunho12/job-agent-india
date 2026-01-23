@@ -27,7 +27,8 @@ import JobAnalysis from './pages/JobAnalysis'
 import Stats from './pages/Stats'
 import TermsOfService from './pages/TermsOfService'
 import PrivacyPolicy from './pages/PrivacyPolicy'
-import AdminAnalytics from './pages/AdminAnalytics'
+import AdminDashboard from './pages/AdminDashboard'
+import AdminUsers from './pages/AdminUsers'
 
 
 // Components
@@ -103,7 +104,8 @@ function App() {
             <Route path="/billing/success" element={<BillingSuccess />} />
             <Route path="/jobs/:jobId/analysis" element={<JobAnalysis />} />
             <Route path="/stats" element={<Stats />} />
-            <Route path="/admin/analytics" element={<AdminAnalytics />} />
+            <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/admin/users" element={<AdminUsers />} />
           </Route>
           
           {/* Catch all */}

@@ -59,9 +59,10 @@ function Billing() {
     mutationFn: (quantity) => billingApi.buyCredit(quantity),
     onSuccess: (data) => {
         analytics.trackCTAClick('Buy Credit')
-      window.location.href = data.data.checkout_url
+        window.location.href = data.data.checkout_url
     },
     onError: (error) => {
+        console.error(error)
       showMessage('error', error.response?.data?.detail || 'Failed to buy credits')
     }
   })
@@ -69,7 +70,7 @@ function Billing() {
   const subscribeBasicMutation = useMutation({
     mutationFn: () => billingApi.subscribeBasic(),
     onSuccess: (data) => {
-        analytics.trackCTAClick('Subscribe Basic')
+        analytics.trackCTAClick('Subscribe to Basic', 'Billing Page')
       window.location.href = data.data.checkout_url
     },
     onError: (error) => {
@@ -80,7 +81,7 @@ function Billing() {
   const subscribeProMutation = useMutation({
     mutationFn: () => billingApi.subscribePro(),
     onSuccess: (data) => {
-        analytics.trackCTAClick('Subscribe Pro')
+        analytics.trackCTAClick('Subscribe to Pro', 'Billing Page')
       window.location.href = data.data.checkout_url
     },
     onError: (error) => {

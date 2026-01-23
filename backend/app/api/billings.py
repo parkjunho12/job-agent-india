@@ -73,6 +73,7 @@ async def get_subscription(
 @router.post("/buy-credit")
 async def buy_credit(
     quantity: int = 1,
+    request_id: str = "",
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -98,7 +99,7 @@ async def buy_credit(
     
     # Create Stripe customer if not exists
     if not subscription.stripe_customer_id:
-        idem_key = f"buy_credit:{current_user.id}:{quantity}"
+        idem_key = f"buy_credit:{current_user.id}:{quantity}:{request_id}"
         
         customer = stripe_service.create_customer(
             email=current_user.email,
@@ -116,8 +117,8 @@ async def buy_credit(
     
     try:
         # (권장) idempotency key: 같은 유저가 같은 수량으로 연타해도 세션이 폭증하지 않게
-        idem_key = f"buy_credit:{current_user.id}:{quantity}"
-        
+        idem_key = f"buy_credit:{current_user.id}:{quantity}:{request_id}"
+
         session = stripe_service.create_checkout_session_credits(
             customer_id=subscription.stripe_customer_id,
             success_url=success_url,
@@ -643,6 +644,8 @@ async def stripe_webhook(
                 
                 # Add credits
                 usage_service.add_credits(subscription.user_id, credits)
+                analytics = AnalyticsService(db)
+                analytics.track_conversion(subscription.user_id, 'per_job', 2.99)
                 
                 # Record transaction
                 usage_service.record_transaction(
@@ -673,9 +676,8 @@ async def stripe_webhook(
     # Handle Subscription Created
     # ============================================
     elif event.type == "customer.subscription.created":
-        
         subscription_data = stripe_service.parse_subscription_from_event(event)
-        
+
         
         if subscription_data:
             subscription = db.query(Subscription).filter(
@@ -688,15 +690,18 @@ async def stripe_webhook(
                 basic_price_id = settings.STRIPE_PRICE_BASIC_MONTHLY
                 pro_price_id = settings.STRIPE_PRICE_PRO_MONTHLY
                 
-          
+                analytics = AnalyticsService(db)
                 if price_id == basic_price_id:
+                    analytics.track_conversion(subscription.user_id, 'subscription', 9.99)
                     plan = PlanType.BASIC
                 elif price_id == pro_price_id:
+                    analytics.track_conversion(subscription.user_id, 'subscription', 29.99)
                     plan = PlanType.PRO
                 else:
                     plan = PlanType.FREE
-                
                     
+
+                
                 
                 # Update subscription
                 usage_service.update_subscription_plan(

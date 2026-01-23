@@ -415,6 +415,7 @@ function VerdictDisplay({ verdictData, jobId, job, onJobUpdate, onError }) {
       // 여기서는 window reload 대신 onJobUpdate나 refetch trigger가 필요함.
       // 가장 간단히는: onJobUpdate 콜백이 있으면 호출하거나,
       // 상위에서 query invalidation을 하도록 설계.
+      analytics.trackAnalysis(jobId, data.is_premium)
       queryClient.setQueryData(['analysis', jobId], data)
       onJobUpdate(data)
     } catch (e) {

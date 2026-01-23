@@ -20,7 +20,6 @@ function CVSetupWizard({ onComplete, onSkip }) {
   })
   
   const queryData = experiencesData?.data || []
-  console.log('Fetched experiences:', queryData)
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">

@@ -9,8 +9,7 @@ from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 import logging
 
-from app.api import auth, jobs, applications, generation, automation, cv, experiences, billings, analysis, analytics
-from app.models.analytics import AnalyticsEvent, ConversionFunnel, DailyMetrics
+from app.api import auth, jobs, applications, generation, automation, cv, experiences, billings, analysis, analytics, admin
 from app.db.database import engine
 from app.db.database import Base
 from app.utils.config import settings
@@ -155,6 +154,12 @@ app.include_router(
     analytics.router,
     prefix="/api/v1/analytics",
     tags=["analytics"]
+)
+
+app.include_router(
+    admin.router,
+    prefix="/api/v1/admin",
+    tags=["admin"]
 )
 
 # Global exception handler

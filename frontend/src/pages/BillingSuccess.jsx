@@ -20,7 +20,7 @@ function BillingSuccess() {
    const [syncError, setSyncError] = useState('')
    const [attempts, setAttempts] = useState(0)
 
-   const MAX_ATTEMPTS = 30
+   const MAX_ATTEMPTS = 5
 
   // Refetch subscription and usage data
   const subscriptionQuery = useQuery({
@@ -64,8 +64,9 @@ function BillingSuccess() {
         // Fetch latest user (source of truth for authStore tier)
         const me = await authApi.me()
         updateUser(me.data)
+        setAttempts(prev => prev + 1)
 
-        analytics.trackEvent('payment_success')
+        analytics.trackEvent('payment_success', 'conversion', 'success_page_viewed')
 
         // Keep React Query cache consistent too (optional but recommended)
         queryClient.setQueryData(['user'], me)

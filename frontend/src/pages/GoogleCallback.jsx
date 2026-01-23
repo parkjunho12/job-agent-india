@@ -40,9 +40,6 @@ export function GoogleCallback() {
 
       if (resp.is_new_user) {
         analytics.trackSignup(resp.user.id)               // signup 전환
-        analytics.trackEvent('signup', 'signup', 'account_created', {
-          data: { provider: resp.provider, user_id: resp.user.id }
-        })
       } else {
         analytics.trackEvent('login', 'auth', 'login_success', {
           data: { provider: resp.provider, user_id: resp.user.id }

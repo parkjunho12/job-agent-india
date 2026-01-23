@@ -26,9 +26,7 @@ function Register() {
     onSuccess: (res) => {
       const user = res.data
       analytics.trackSignup(user.id)
-      analytics.trackEvent('register', 'signup', 'account_created', {
-        data: { user_id: user.id }
-      })
+      analytics.trackOnboardingStep('account_created')
       navigate('/register-success')
     },
     onError: (error) => {
