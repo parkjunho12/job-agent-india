@@ -136,7 +136,8 @@ class AnalysisEngine:
                 "required_skills": job.required_skills or [],
                 "preferred_skills": job.preferred_skills or [],
                 "required_experience": job.required_experience,
-                "salary_range": job.salary_range
+                "salary_range": job.salary_range,
+                "custom_questions": job.custom_questions or []
             }
             
         else:
@@ -335,13 +336,13 @@ class AnalysisEngine:
             job_title=jd_metadata["title"],
             company=jd_metadata["company"]
         )
-        
         # Generate interview Q&A
         interview_qa = await self.openai.generate_interview_qa(
             cv_text=cv_text,
             job_description=jd_text,
             job_title=jd_metadata["title"],
-            num_questions=10
+            num_questions=10,
+            custom_questions=jd_metadata["custom_questions"]
         )
         
         # Generate rewritten bullets

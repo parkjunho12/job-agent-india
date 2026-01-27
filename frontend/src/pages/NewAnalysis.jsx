@@ -32,9 +32,7 @@ export default function NewAnalysis({ onComplete }) {
   // Create analysis mutation
   const createAnalysisMutation = useMutation({
     mutationFn: async (data) => {
-      console.log('Creating analysis with data:', data);
-      
-      // ✅ FIX: Add await
+
       const analysis = await analysisApi.createAnalysis(data);
       
       console.log('Created analysis:', analysis);
@@ -59,7 +57,7 @@ export default function NewAnalysis({ onComplete }) {
         
         // Redirect to detail after 2 seconds
         setTimeout(() => {
-          navigate(`/analysis/${analysis.id}`);
+          navigate(`/analysis-history/${analysis.id}`);
         }, 2000);
       } else {
         // Run analysis if not done
@@ -95,7 +93,7 @@ export default function NewAnalysis({ onComplete }) {
       // ✅ FIX: Redirect to detail view, not history
       setTimeout(() => {
         if (data.analysis_id) {
-          navigate(`/analysis/${data.analysis_id}`);
+          navigate(`/analysis-history/${data.analysis_id}`);
         } else if (onComplete) {
           onComplete();
         }

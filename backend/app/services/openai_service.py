@@ -72,6 +72,16 @@ class OpenAIService:
         - ats_score: Keyword coverage (0-100)
         - risk_score: Rejection risk (0-100, LOWER is better)
         
+        Preview of Cover Letter:
+        - cover_letter_preview: Maximum 3 sentences 
+        json form: "cover_letter_preview": {
+                "visible_sentences": [
+                    "I am writing to express my strong interest in this position.",
+                    "My background and experience align well with the requirements.",
+                    "I am confident I can make valuable contributions to your team."
+                ]
+            }
+        
         Be honest but constructive. Focus on specific, actionable improvements.
         Always return valid JSON."""
         
@@ -99,6 +109,9 @@ class OpenAIService:
             result.setdefault("strong_matches", [])
             result.setdefault("missing_skills", [])
             result.setdefault("action_plan", [])
+            result.setdefault("cover_letter_preview", {
+                "visible_sentences": []
+            })
             
             # Ensure top_fixes has exactly 3 items
             while len(result["top_fixes"]) < 3:
@@ -197,7 +210,8 @@ Return ONLY the cover letter text (no JSON, no markdown).
         cv_text: str,
         job_description: str,
         job_title: str,
-        num_questions: int = 10
+        num_questions: int = 10,
+        custom_questions: Optional[List[str]] = None
     ) -> List[Dict[str, str]]:
         """
         Generate interview questions with STAR-method answers
@@ -214,36 +228,82 @@ Return ONLY the cover letter text (no JSON, no markdown).
                 ...
             ]
         """
+        # 1) normalize: accept both dict and str
+        normalized: list[str] = []
+
+        for q in (custom_questions or []):
+            text = None
+
+            if isinstance(q, str):
+                text = q.strip()
+            elif isinstance(q, dict):
+                text = str(q.get("text", "")).strip()
+
+            if text:
+                normalized.append(text)
+
+        # 2) dedup (case-insensitive)
+        seen = set()
+        deduped: list[str] = []
+        for q in normalized:
+            key = q.lower()
+            if key not in seen:
+                seen.add(key)
+                deduped.append(q)
+
+        custom_questions = deduped
+
+        # 3) targets
+        custom_target = min(len(custom_questions), num_questions)
+        auto_target = max(0, num_questions - custom_target)
+
+        print("custom_questions normalized:", normalized)
+        print("custom_questions after dedup:", custom_questions)
+
         
         prompt = f"""Generate {num_questions} common interview questions for this job, with prepared answers based on the candidate's CV.
 
+STRICT OUTPUT REQUIREMENTS:
+- Output ONLY valid JSON (no markdown, no prose).
+- The JSON must contain ONLY this top-level key: "qa_pairs".
+- "qa_pairs" must be a list of EXACTLY {num_questions} objects.
+- Each object MUST have exactly two string keys: "question", "answer".
+- Do NOT include any extra keys.
+- Do NOT include nulls.
+- Do NOT repeat questions.
+
+GROUNDING RULES (IMPORTANT):
+- Answers must be grounded in the provided CV. Do NOT invent companies, roles, or achievements.
+- If the CV lacks specifics, write a plausible but generic STAR answer WITHOUT fabricating facts.
+- Each answer must be 80–120 words.
+- Use STAR method where appropriate.
+
+ORDER RULES:
+- First {custom_target} items MUST correspond to the Custom Questions below, in the same order.
+- For these custom items:
+  - "question" must be EXACTLY the same text as the custom question (verbatim).
+  - Provide the best possible answer based on the CV.
+- Remaining {auto_target} items:
+  - Generate common interview questions relevant to the job title and job description.
+  - Include a mix: behavioral, technical/domain, situational, cultural fit.
+  - Always include "Tell me about yourself" if it is not already in the custom questions.
+
+JOB CONTEXT
 Job Title: {job_title}
 
-Job Description:
-{job_description[:1000]}
+Job Description (truncated):
+{job_description[:1200]}
 
-Candidate CV:
-{cv_text[:1500]}
+Candidate CV (truncated):
+{cv_text[:1800]}
 
-For each question, provide:
-1. A common interview question (mix of behavioral, technical, situational)
-2. A strong answer using STAR method where applicable
-3. Answers should be 80-120 words, specific to candidate's experience
+Custom Questions (PRIORITY, use verbatim for the first {custom_target} items):
+{json.dumps(custom_questions[:custom_target], ensure_ascii=False)}
 
-Question types to include:
-- "Tell me about yourself"
-- Behavioral (past experience)
-- Technical/domain specific
-- Situational (problem-solving)
-- Cultural fit
-
-Return ONLY valid JSON with this structure:
+Return JSON ONLY in this format:
 {{
   "qa_pairs": [
-    {{
-      "question": "Tell me about a time when...",
-      "answer": "In my role at Company X, I faced... [STAR format]"
-    }},
+    {{"question": "...", "answer": "..."}},
     ...
   ]
 }}
@@ -256,7 +316,7 @@ Return ONLY valid JSON with this structure:
         try:
             response = await self.client.chat.completions.create(
                 model=self.model,
-                max_tokens=2500,
+                max_tokens=3000,
                 temperature=0.6,
                 response_format={"type": "json_object"},
                 messages=[
@@ -265,6 +325,7 @@ Return ONLY valid JSON with this structure:
                 ]
             )
             
+        
             content = response.choices[0].message.content
             result = json.loads(content)
             

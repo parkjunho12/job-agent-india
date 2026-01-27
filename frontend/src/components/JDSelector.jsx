@@ -61,13 +61,15 @@ export default function JDSelector({ selectedJD, onSelect }) {
     try {
       // structuredQuestions comes from backend after save
       // Update local state with the structured format
-      setCurrentJob({ ...currentJob, custom_questions: structuredQuestions })
+
+      onSelect({
+        id: selectedJD.id,
+        title: selectedJD.title,
+        company: selectedJD.company,
+        custom_questions: structuredQuestions || []
+      });
       setIsEditingQuestions(false)
       
-      // Notify parent if callback provided
-      if (onJobUpdate) {
-        onJobUpdate({ ...currentJob, custom_questions: structuredQuestions })
-      }
       
     } catch (error) {
       console.error('Failed to update local state:', error)
@@ -208,6 +210,7 @@ export default function JDSelector({ selectedJD, onSelect }) {
             }`}
           >
             <div className="flex items-start justify-between">
+                
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
                   <h3 className="font-semibold truncate">{job.title}</h3>
@@ -256,57 +259,61 @@ export default function JDSelector({ selectedJD, onSelect }) {
         </div>
       )}
       {selectedJD && (
-      isEditingQuestions ? (
-            <EditQuestionsCard
-              job={selectedJD}
-              onSave={handleSaveQuestions}
-              onCancel={() => setIsEditingQuestions(false)}
-            />
-          ) : (
-            <div id="ai-generation-hub" className="relative">
-              {/* Edit Questions Button */}
-              <div className="mb-4">
-                <button
-                  onClick={() => setIsEditingQuestions(true)}
-                  className="w-full rounded-xl border-2 border-primary-300 bg-primary-50 px-4 py-4 text-left shadow-md hover:shadow-lg transition-all"
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="mt-0.5 w-10 h-10 bg-white rounded-lg flex items-center justify-center border border-primary-200 flex-shrink-0">
-                      <Edit className="w-5 h-5 text-primary-700" />
-                    </div>
-
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between gap-3">
-                        <p className="text-base font-bold text-gray-900">
-                          Add application questions to generate better answers
-                        </p>
-                        <span className="text-xs font-semibold px-2 py-1 rounded-full bg-white border border-primary-200 text-primary-700">
-                          {selectedJD.custom_questions?.length || 0} saved
-                        </span>
-                      </div>
-
-                      <p className="mt-1 text-sm text-gray-700">
-                        Copy questions from the application form, the AI Hub will use them to create job-specific responses.
-                      </p>
-
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        <span className="text-xs px-2 py-1 rounded-full bg-white border border-gray-200 text-gray-700">
-                          Takes ~30 seconds
-                        </span>
-                        <span className="text-xs px-2 py-1 rounded-full bg-white border border-gray-200 text-gray-700">
-                          Improves answer quality
-                        </span>
-                        <span className="text-xs px-2 py-1 rounded-full bg-white border border-gray-200 text-gray-700">
-                          Works for all jobs
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </button>
-              </div>
+        <div className="mt-6">
+            <div className="flex items-center justify-between mb-2">
+            <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                Step 2 (Optional)
+                </p>
+                <h4 className="text-base font-bold text-gray-900">
+                Add application questions
+                </h4>
             </div>
-          )
+            <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-700">
+                Improves quality
+            </span>
+            </div>
+
+            <details className="group rounded-xl border border-gray-200 bg-white">
+            <summary className="cursor-pointer list-none px-4 py-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center">
+                    <Edit className="w-4 h-4 text-gray-700" />
+                </div>
+                <div>
+                    <p className="font-semibold text-gray-900">
+                    Add questions from the application form
+                    </p>
+                    <p className="text-sm text-gray-600">
+                    {selectedJD.custom_questions?.length || 0} saved • Takes ~30s
+                    </p>
+                </div>
+                </div>
+
+                <ChevronDown className="w-5 h-5 text-gray-500 group-open:rotate-180 transition-transform" />
+            </summary>
+
+            <div className="px-4 pb-4">
+                {/* 여기서 EditQuestionsCard 또는 AIGenerationHub 연결 */}
+                {isEditingQuestions ? (
+                <EditQuestionsCard
+                    job={selectedJD}
+                    onSave={handleSaveQuestions}
+                    onCancel={() => setIsEditingQuestions(false)}
+                />
+                ) : (
+                <button
+                    onClick={() => setIsEditingQuestions(true)}
+                    className="btn btn-outline w-full"
+                >
+                    Edit / Add Questions
+                </button>
+                )}
+            </div>
+            </details>
+        </div>
         )}
+
     </div>
   );
 }

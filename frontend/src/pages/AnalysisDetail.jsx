@@ -18,7 +18,12 @@ import {
 } from 'lucide-react';
 import { analysisApi, billingApi } from '../services/api';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import { 
+    exportCompletePDF, 
+    exportCoverLetterPDF, 
+    exportInterviewQAPDF 
+  } from '../utils/pdfExport';
 
 /**
  * Analysis Detail 화면
@@ -41,6 +46,9 @@ export default function AnalysisDetail() {
   const { analysisId } = useParams();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const [unlockStage, setUnlockStage] = useState('idle');
+// idle | redirecting | finalizing | done | cancelled | error
+    const [unlockMsg, setUnlockMsg] = useState('');
 
   
   // Local state for interactions
@@ -74,6 +82,14 @@ export default function AnalysisDetail() {
       // Stripe Checkout로 이동
       window.location.href = checkoutUrl;
     },
+    onMutate: () => {
+        setUnlockStage('redirecting');
+        setUnlockMsg('Redirecting to secure checkout…');
+      },
+      onError: (err) => {
+        setUnlockStage('error');
+        setUnlockMsg(err?.message || 'Failed to start checkout.');
+      }
   });
   
   // Unlock mutation
@@ -87,6 +103,9 @@ export default function AnalysisDetail() {
       // Invalidate queries
       queryClient.invalidateQueries(['analysis', analysisId]);
       queryClient.invalidateQueries(['analyses']);
+
+      setUnlockStage('done');
+      setUnlockMsg('Unlocked! Loading full analysis…');
       
       // URL clean (unlock_success 제거)
       const next = new URLSearchParams(searchParams);
@@ -99,6 +118,8 @@ export default function AnalysisDetail() {
     },
     onError: (error) => {
       console.error('Failed to unlock analysis:', error);
+      setUnlockStage('error');
+    setUnlockMsg(err?.message || 'Failed to finalize unlock.');
     }
   });
 
@@ -113,10 +134,14 @@ export default function AnalysisDetail() {
     onSuccess: () => {
       queryClient.invalidateQueries(['analysis', analysisId]);
       alert('Content regenerated successfully!');
+
+      setUnlockStage('done');
+      setUnlockMsg('Unlocked! Loading full analysis…');
     },
     onError: (error) => {
-      console.error('Failed to regenerate:', error);
       alert('Failed to regenerate content. Please try again.');
+      setUnlockStage('error');
+        setUnlockMsg(err?.message || 'Failed to finalize unlock.');
     }
   });
   
@@ -138,9 +163,16 @@ export default function AnalysisDetail() {
   
   // ✅ NEW: Export as PDF (placeholder)
   const handleExportPDF = (section) => {
-    // TODO: Implement PDF export
-    alert(`Exporting ${section} as PDF...`);
-    console.log('Export PDF:', section);
+    try {
+      if (section === 'cover-letter') {
+        exportCoverLetterPDF(analysis, full.cover_letter_full);
+      } else if (section === 'complete-analysis') {
+        exportCompletePDF(analysis, preview, full);
+      }
+      alert('PDF exported successfully!');
+    } catch (error) {
+      alert('Failed to export PDF');
+    }
   };
 
   useEffect(() => {
@@ -156,6 +188,9 @@ export default function AnalysisDetail() {
     }
   
     if (!unlockSuccess) return;
+
+    setUnlockStage('finalizing');
+    setUnlockMsg('Finalizing unlock… fetching full content.');
   
     // success면 저장해둔 transactionId로 finalize
     const tx = sessionStorage.getItem(`unlock_tx_${analysisId}`);
@@ -323,7 +358,38 @@ export default function AnalysisDetail() {
           </div>
         </div>
       </div>
-      
+
+      <div className="relative">
+
+      {(unlockStage === 'redirecting' || unlockStage === 'finalizing' || isUnlockPending) && (
+        <div className="absolute inset-0 z-30 flex items-center justify-center rounded-xl bg-white/70 backdrop-blur-sm border border-gray-200">
+        <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6 w-[min(520px,92vw)]">
+            <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-full bg-primary-50 flex items-center justify-center flex-shrink-0">
+                <RefreshCw className="w-5 h-5 text-primary-600 animate-spin" />
+            </div>
+
+            <div className="flex-1">
+                <p className="font-semibold text-gray-900 text-lg">
+                {unlockStage === 'redirecting' ? 'Redirecting to checkout…' : 'Unlocking your analysis…'}
+                </p>
+                <p className="text-sm text-gray-600 mt-1">
+                {unlockMsg || 'Please don’t close this tab.'}
+                </p>
+
+                <div className="mt-4 h-2 w-full bg-gray-100 rounded-full overflow-hidden">
+                <div className="h-full w-2/3 bg-primary-600 animate-pulse rounded-full" />
+                </div>
+
+                <p className="text-xs text-gray-500 mt-3">
+                This usually takes a few seconds.
+                </p>
+            </div>
+            </div>
+        </div>
+        </div>
+    )}
+
       {/* Preview Section (Always visible) */}
       <div className="space-y-6 mb-8">
         {/* Scores */}
@@ -886,6 +952,7 @@ export default function AnalysisDetail() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }
