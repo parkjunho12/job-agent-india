@@ -73,6 +73,7 @@ class AnalysisEngine:
             # Step 4: Generate preview (always)
             preview = self._generate_preview(match_result)
             
+            
             # Step 5: Generate full content (if unlocked)
             full = None
             if analysis.is_unlocked:
@@ -269,6 +270,13 @@ class AnalysisEngine:
         result.setdefault("strong_matches", [])
         result.setdefault("missing_skills", [])
         result.setdefault("action_plan", [])
+        result.setdefault("cover_letter_preview", {
+                "visible_sentences": [
+                    "I am writing to express my strong interest in this position.",
+                    "My background and experience align well with the requirements.",
+                    "I am confident I can make valuable contributions to your team."
+                ]
+            })
         
         # Ensure exactly 3 top fixes
         while len(result["top_fixes"]) < 3:
@@ -298,13 +306,7 @@ class AnalysisEngine:
             "risk_score": match_result["risk_score"],
             "verdict_type": match_result["verdict_type"],
             "top_fixes": match_result["top_fixes"][:3],  # Exactly 3
-            "cover_letter_preview": {
-                "visible_sentences": [
-                    "I am writing to express my strong interest in this position.",
-                    "My background and experience align well with the requirements.",
-                    "I am confident I can make valuable contributions to your team."
-                ]
-            }
+            "cover_letter_preview": match_result["cover_letter_preview"]
         }
         
         return preview
@@ -489,13 +491,26 @@ Provide analysis in JSON:
     "Add SQL/analytics tools to skills",
     "Emphasize B2B customer experience",
     "Highlight data-driven projects"
-  ]
+  ],
+  "cover_letter_preview": {{
+    "visible_sentences": [ 
+    "I am writing to express my strong interest in this position.", 
+    "My background and experience align well with the requirements.", 
+    "I am confident I can make valuable contributions to your team." 
+    ]
+  }}
 }}
 
 SCORING:
 - match_score: 80-100 = strong_match, 60-79 = good_match, <60 = needs_work
 - ats_score: Keyword coverage and formatting
 - risk_score: Rejection risk (LOWER is better)
+
+OUTPUT REQUIREMENTS:
+- Return ONLY valid JSON matching the system schema exactly.
+- MUST include cover_letter_preview.visible_sentences (5 to 10 sentences, max 10).
+- top_fixes must be exactly 3 items.
+- strong_matches / missing_skills / action_plan should be concise and job-specific.
 
 Return ONLY valid JSON.
 """

@@ -66,25 +66,41 @@ class OpenAIService:
         """
         
         system_prompt = """You are an expert ATS analyzer and career coach.
-        Analyze the CV-to-Job match and provide actionable feedback.
-        
+
+        You MUST return ONLY valid JSON (no markdown, no commentary).
+        The JSON MUST follow the EXACT schema below and include ALL required keys.
+
         Scoring guidelines:
-        - match_score: 80-100 = strong_match, 60-79 = good_match, 40-59 = needs_work, <40 = high_risk
-        - ats_score: Keyword coverage (0-100)
-        - risk_score: Rejection risk (0-100, LOWER is better)
-        
-        Preview of Cover Letter:
-        - cover_letter_preview: Maximum 3 sentences 
-        json form: "cover_letter_preview": {
-                "visible_sentences": [
-                    "I am writing to express my strong interest in this position.",
-                    "My background and experience align well with the requirements.",
-                    "I am confident I can make valuable contributions to your team."
-                ]
-            }
-        
-        Be honest but constructive. Focus on specific, actionable improvements.
-        Always return valid JSON."""
+        - match_score (0-100): 80-100 strong_match, 60-79 good_match, 40-59 needs_work, <40 high_risk
+        - ats_score (0-100): keyword coverage + ATS friendliness
+        - risk_score (0-100): rejection risk (LOWER is better)
+
+        Required JSON schema:
+        {
+        "match_score": <integer 0-100>,
+        "ats_score": <integer 0-100>,
+        "risk_score": <integer 0-100>,
+        "verdict_type": <one of: "strong_match","good_match","needs_work","high_risk">,
+
+        "top_fixes": [
+            {"title": <string>, "example": <string>}
+        ],
+
+        "strong_matches": [<string>],
+        "missing_skills": [<string>],
+        "action_plan": [<string>],
+
+        "cover_letter_preview": {
+            "visible_sentences": [<string>, <string>, <string>]
+        }
+        }
+
+        Rules:
+        - top_fixes must contain exactly 3 items.
+        - cover_letter_preview.visible_sentences must contain 5 to 10 sentences (max 10).
+        - Keep sentences concise and tailored to the job.
+        - Be honest but constructive; focus on actionable improvements."""
+
         
         try:
             response = await self.client.chat.completions.create(
@@ -101,6 +117,7 @@ class OpenAIService:
             content = response.choices[0].message.content
             result = json.loads(content)
             
+            
             # Validate and set defaults
             result.setdefault("match_score", 50)
             result.setdefault("ats_score", 50)
@@ -111,7 +128,11 @@ class OpenAIService:
             result.setdefault("missing_skills", [])
             result.setdefault("action_plan", [])
             result.setdefault("cover_letter_preview", {
-                "visible_sentences": []
+                "visible_sentences": [
+                    "I am writing to express my strong interest in this position.",
+                    "My background and experience align well with the requirements.",
+                    "I am confident I can make valuable contributions to your team."
+                ]
             })
             
             # Ensure top_fixes has exactly 3 items
@@ -257,9 +278,6 @@ Return ONLY the cover letter text (no JSON, no markdown).
         # 3) targets
         custom_target = min(len(custom_questions), num_questions)
         auto_target = max(0, num_questions - custom_target)
-
-        print("custom_questions normalized:", normalized)
-        print("custom_questions after dedup:", custom_questions)
 
         
         prompt = f"""Generate {num_questions} common interview questions for this job, with prepared answers based on the candidate's CV.
