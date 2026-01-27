@@ -1,8 +1,11 @@
 import { Check, ArrowRight, Zap, Menu, X, Download, Star, FileText, MessageSquare, TrendingUp, Target } from 'lucide-react'
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 
 function Landing2() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+
+  const navigate = useNavigate()
 
   return (
     <div className="min-h-screen bg-white">
@@ -29,7 +32,9 @@ function Landing2() {
               <a href="#pricing" className="text-gray-600 hover:text-gray-900 font-medium transition-colors">
                 Pricing
               </a>
-              <button className="px-6 py-2.5 bg-gradient-to-r from-primary-600 to-purple-600 text-white rounded-lg font-semibold hover:shadow-lg hover:scale-105 transition-all">
+              <button 
+                onClick={() => navigate('/register')}
+              className="px-6 py-2.5 bg-gradient-to-r from-primary-600 to-purple-600 text-white rounded-lg font-semibold hover:shadow-lg hover:scale-105 transition-all">
                 Get Started Free
               </button>
             </nav>
@@ -48,7 +53,9 @@ function Landing2() {
                 <a href="#demo" className="text-gray-600 hover:text-gray-900 font-medium" onClick={() => setMobileMenuOpen(false)}>Try Demo</a>
                 <a href="#features" className="text-gray-600 hover:text-gray-900 font-medium" onClick={() => setMobileMenuOpen(false)}>Features</a>
                 <a href="#pricing" className="text-gray-600 hover:text-gray-900 font-medium" onClick={() => setMobileMenuOpen(false)}>Pricing</a>
-                <button className="px-6 py-2 bg-gradient-to-r from-primary-600 to-purple-600 text-white rounded-lg font-semibold">
+                <button 
+                onClick={() => navigate('/register')}
+                className="px-6 py-2 bg-gradient-to-r from-primary-600 to-purple-600 text-white rounded-lg font-semibold">
                   Get Started Free
                 </button>
               </nav>
@@ -79,7 +86,9 @@ function Landing2() {
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
-              <button className="px-8 py-4 bg-gradient-to-r from-primary-600 to-purple-600 text-white rounded-xl font-bold text-lg hover:shadow-2xl hover:scale-105 transition-all inline-flex items-center gap-2 w-full sm:w-auto">
+              <button 
+                onClick={() => navigate('/register')}
+              className="px-8 py-4 bg-gradient-to-r from-primary-600 to-purple-600 text-white rounded-xl font-bold text-lg hover:shadow-2xl hover:scale-105 transition-all inline-flex items-center gap-2 w-full sm:w-auto">
                 Start Free - 3 Analyses
                 <ArrowRight className="w-5 h-5" />
               </button>
@@ -216,7 +225,9 @@ function Landing2() {
                 <PricingFeature text="Cover letter preview (first 3 sentences)" />
               </ul>
 
-              <button className="w-full py-3 border-2 border-gray-900 text-gray-900 rounded-lg font-semibold hover:bg-gray-900 hover:text-white transition-all">
+              <button 
+              onClick={() => navigate('/register')}
+              className="w-full py-3 border-2 border-gray-900 text-gray-900 rounded-lg font-semibold hover:bg-gray-900 hover:text-white transition-all">
                 Start Free
               </button>
             </div>
@@ -241,7 +252,9 @@ function Landing2() {
                 <PricingFeature text="Export PDF" highlighted />
               </ul>
 
-              <button className="w-full py-3 bg-gradient-to-r from-primary-600 to-purple-600 text-white rounded-lg font-semibold hover:shadow-xl hover:scale-105 transition-all">
+              <button 
+              onClick={() => navigate('/register')}
+              className="w-full py-3 bg-gradient-to-r from-primary-600 to-purple-600 text-white rounded-lg font-semibold hover:shadow-xl hover:scale-105 transition-all">
                 Try Free First
               </button>
             </div>
@@ -274,7 +287,9 @@ function Landing2() {
           <p className="text-xl text-white/90 mb-8">
             Get your first 3 analyses free. See results in 30 seconds.
           </p>
-          <button className="px-10 py-5 bg-white text-primary-600 rounded-xl font-bold text-lg hover:shadow-2xl hover:scale-105 transition-all inline-flex items-center gap-2">
+          <button 
+          onClick={() => navigate('/register')}
+          className="px-10 py-5 bg-white text-primary-600 rounded-xl font-bold text-lg hover:shadow-2xl hover:scale-105 transition-all inline-flex items-center gap-2">
             Start Free Now
             <ArrowRight className="w-6 h-6" />
           </button>
@@ -754,7 +769,7 @@ function FullDemoCard() {
           </div>
 
           <button
-            onClick={handleReset}
+            onClick={() => navigate('/register')}
             className="w-full py-3 border-2 border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-all"
           >
             Analyze Another Job
