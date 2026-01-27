@@ -141,7 +141,7 @@ export function AdvancedFunnelSection({ funnel, metrics, timeline }) {
             </div>
             <div className="text-center">
               <p className="text-3xl font-bold text-orange-600">
-                £{((metrics.total_revenue || 0) / (funnel.users_converted || 1)).toFixed(2)}
+                ${((metrics.total_revenue || 0) / (funnel.users_converted || 1)).toFixed(2)}
               </p>
               <p className="text-sm text-gray-600 mt-1">Revenue per Conversion</p>
             </div>
@@ -285,7 +285,7 @@ export function RevenueAnalytics({ metrics, timeline }) {
       <div className="grid md:grid-cols-3 gap-6">
         <div className="bg-gradient-to-br from-success-50 to-green-50 rounded-xl border-2 border-success-300 p-6">
           <p className="text-sm font-semibold text-success-700 mb-2">Total Revenue</p>
-          <p className="text-4xl font-bold text-success-900 mb-4">£{totalRevenue.toFixed(2)}</p>
+          <p className="text-4xl font-bold text-success-900 mb-4">${totalRevenue.toFixed(2)}</p>
           <div className="flex items-center gap-2 text-sm text-success-700">
             <TrendingUp className="w-4 h-4" />
             <span>+{(metrics.trends?.revenue_change || 0).toFixed(0)}% vs last period</span>
@@ -293,12 +293,12 @@ export function RevenueAnalytics({ metrics, timeline }) {
         </div>
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <p className="text-sm font-semibold text-gray-600 mb-2">Avg Revenue per Conversion</p>
-          <p className="text-4xl font-bold text-gray-900 mb-4">£{avgRevenuePerConversion.toFixed(2)}</p>
+          <p className="text-4xl font-bold text-gray-900 mb-4">${avgRevenuePerConversion.toFixed(2)}</p>
           <p className="text-sm text-gray-600">Based on {totalConversions} conversion{totalConversions !== 1 ? 's' : ''}</p>
         </div>
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <p className="text-sm font-semibold text-gray-600 mb-2">Revenue per User</p>
-          <p className="text-4xl font-bold text-gray-900 mb-4">£{(totalRevenue / (metrics.total_signups || 1)).toFixed(2)}</p>
+          <p className="text-4xl font-bold text-gray-900 mb-4">${(totalRevenue / (metrics.total_signups || 1)).toFixed(2)}</p>
           <p className="text-sm text-gray-600">Across {metrics.total_signups || 0} users</p>
         </div>
       </div>

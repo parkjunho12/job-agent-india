@@ -504,7 +504,7 @@ function AddJobModal({ isOpen, onClose, onSuccess, onLimit }) {
                   value={formData.salary_range}
                   onChange={(e) => setFormData({ ...formData, salary_range: e.target.value })}
                   className="input w-full"
-                  placeholder="e.g., £50k - £70k"
+                  placeholder="e.g., $50k - $70k"
                 />
               </div>
             </div>

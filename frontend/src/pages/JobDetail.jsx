@@ -829,7 +829,7 @@ function JobDetail() {
                       value={editedJob.salary_range}
                       onChange={(e) => setEditedJob({ ...editedJob, salary_range: e.target.value })}
                       className="input w-full"
-                      placeholder="e.g., £40k-60k"
+                      placeholder="e.g., $40k-60k"
                     />
                   </div>
                 </>

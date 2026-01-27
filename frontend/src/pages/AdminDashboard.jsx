@@ -372,7 +372,7 @@ function KeyMetricsWithCharts({ metrics, trends, timeline }) {
         <MetricCardWithSparkline label="Total Signups" value={metrics.total_signups || 0} change={trends.signups_change || 0} icon={Users} color="blue" data={timeline?.map(d => d.signups || 0) || []} />
         <MetricCardWithSparkline label="Total Analyses" value={metrics.total_analyses || 0} change={trends.analyses_change || 0} icon={Zap} color="green" data={timeline?.map(d => d.analyses || 0) || []} />
         <MetricCardWithSparkline label="Conversions" value={metrics.total_conversions || 0} change={trends.conversions_change || 0} icon={Target} color="purple" data={timeline?.map(d => d.conversions || 0) || []} />
-        <MetricCardWithSparkline label="Revenue" value={`£${(metrics.total_revenue || 0).toFixed(2)}`} change={trends.revenue_change || 0} icon={DollarSign} color="success" data={timeline?.map(d => d.revenue || 0) || []} />
+        <MetricCardWithSparkline label="Revenue" value={`$${(metrics.total_revenue || 0).toFixed(2)}`} change={trends.revenue_change || 0} icon={DollarSign} color="success" data={timeline?.map(d => d.revenue || 0) || []} />
       </div>
     </section>
   )

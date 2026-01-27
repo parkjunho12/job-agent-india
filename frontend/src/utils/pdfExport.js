@@ -8,9 +8,172 @@
  * npm install jspdf jspdf-autotable
  */
 
-import 'jspdf-autotable';
+
 import { jsPDF } from "jspdf"
 import autoTable from "jspdf-autotable"
+/**
+ * PDF Export Utility with Korean Support
+ * 
+ * Uses jsPDF with Noto Sans KR for Korean text
+ * Falls back to Helvetica for English
+ * 
+ * Installation:
+ * npm install jspdf jspdf-autotable
+ * 
+ * Font Setup (one-time):
+ * bash setup-korean-font.sh
+ */
+
+
+// ===================================
+// Korean Font Support
+// ===================================
+
+// Font will be loaded dynamically from public/fonts/
+// This keeps bundle size small
+let koreanFontLoaded = false;
+let koreanFontData = null;
+
+/**
+ * Load Korean font dynamically
+ */
+const loadKoreanFont = async () => {
+  if (koreanFontLoaded && koreanFontData) {
+    return koreanFontData;
+  }
+  
+  try {
+    const response = await fetch('/fonts/NotoSansKR-Regular.ttf');
+    const arrayBuffer = await response.arrayBuffer();
+    
+    // Convert to base64
+    const bytes = new Uint8Array(arrayBuffer);
+    let binary = '';
+    for (let i = 0; i < bytes.byteLength; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    
+    koreanFontData = btoa(binary);
+    koreanFontLoaded = true;
+    
+  
+    return koreanFontData;
+  } catch (error) {
+    console.warn('⚠️ Korean font not found, using default:', error);
+    return null;
+  }
+};
+
+
+/**
+ * Setup PDF document with Korean support
+ */
+const setupPDF = async () => {
+  const doc = new jsPDF({ format: 'a4', putOnlyUsedFonts: true, compress: true });
+
+  const fontData = await loadKoreanFont();
+  
+  if (fontData) {
+    try {
+      doc.addFileToVFS('NotoSansKR-Regular.ttf', fontData);
+      doc.addFont('NotoSansKR-Regular.ttf', 'NotoSansKR', 'normal');
+      doc.addFont('NotoSansKR-Regular.ttf', 'NotoSansKR', 'bold');
+      
+  
+    } catch (error) {
+      console.warn('⚠️ Failed to add Korean font:', error);
+    }
+  }
+  
+  return doc;
+};
+
+
+/**
+ * Check if text contains Korean
+ */
+const hasKorean = (text) => {
+  if (!text) return false;
+  const koreanRegex = /[\u3131-\u314e\u314f-\u3163\uac00-\ud7a3]/;
+  return koreanRegex.test(text);
+};
+
+/**
+ * Set font based on text content
+ */
+const setAppropriateFont = (doc, text, style = 'normal') => {
+  if (hasKorean(text) && koreanFontLoaded) {
+    doc.setFont('NotoSansKR', style);
+  } else {
+    doc.setFont('helvetica', style);
+  }
+};
+
+/**
+ * Add text with auto font selection
+ */
+const addText = (doc, text, x, y, options = {}) => {
+  const { fontSize = 11, style = 'normal', color = '#000000' } = options;
+  
+  doc.setFontSize(fontSize);
+  setAppropriateFont(doc, text, style);
+  doc.setTextColor(color);
+  doc.text(text, x, y);
+};
+
+/**
+ * Split text with Korean support
+ */
+const splitText = (doc, text, maxWidth) => {
+  if (!text) return [];
+  
+  setAppropriateFont(doc, text);
+  
+  if (hasKorean(text)) {
+    // Korean text - split by spaces
+    const words = text.split(' ');
+    const lines = [];
+    let currentLine = '';
+    
+    words.forEach(word => {
+      const testLine = currentLine + (currentLine ? ' ' : '') + word;
+      const width = doc.getTextWidth(testLine);
+      
+      if (width > maxWidth && currentLine) {
+        lines.push(currentLine);
+        currentLine = word;
+      } else {
+        currentLine = testLine;
+      }
+    });
+    
+    if (currentLine) {
+      lines.push(currentLine);
+    }
+    
+    return lines;
+  }
+  
+  // English text - use default
+  return doc.splitTextToSize(text, maxWidth);
+};
+
+// ===================================
+// Export Functions
+// ===================================
+
+/**
+ * Export complete analysis as PDF
+ */
+/**
+ * PDF Export Utility
+ * 
+ * Uses jsPDF for PDF generation
+ * Exports analysis content in professional format
+ * 
+ * Installation:
+ * npm install jspdf jspdf-autotable
+ */
 
 
 /**
@@ -20,8 +183,8 @@ import autoTable from "jspdf-autotable"
  * @param {Object} preview - Preview payload
  * @param {Object} full - Full payload
  */
-export const exportCompletePDF = (analysis, preview, full) => {
-  const doc = new jsPDF();
+export const exportCompletePDF = async (analysis, preview, full) => {
+  const doc = await setupPDF();
   
   let yPosition = 20;
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -103,29 +266,34 @@ function writeWrapped(text, x, maxWidth, fontSize, colorRGB, style = 'normal', e
   // ===================================
   // 1. HEADER
   // ===================================
-  console.log('Saving PDF... 1. Header');
+
   doc.setFontSize(24);
-  doc.setFont('helvetica', 'bold');
+  setAppropriateFont(doc, 'Job Application Analysis', 'bold');
   doc.setTextColor('#7c3aed');
   doc.text('Job Application Analysis', margin, yPosition);
   yPosition += 12;
-  
+
   doc.setFontSize(18);
-  doc.setFont('helvetica', 'bold');
+  setAppropriateFont(doc, analysis.jd_title || 'Job Position', 'bold');
   doc.setTextColor('#000000');
   doc.text(analysis.jd_title || 'Job Position', margin, yPosition);
   yPosition += 8;
   
   doc.setFontSize(12);
-  doc.setFont('helvetica', 'normal');
+  setAppropriateFont(doc, analysis.jd_company || 'Company Name');
   doc.setTextColor('#666666');
   doc.text(analysis.jd_company || 'Company Name', margin, yPosition);
   yPosition += 6;
   
   doc.setFontSize(10);
-  doc.text(`CV: ${analysis.cv_set_name || 'Resume'}`, margin, yPosition);
+  const cvText = `CV: ${analysis.cv_set_name || 'Resume'}`;
+  setAppropriateFont(doc, cvText);
+  doc.text(cvText, margin, yPosition);
   yPosition += 5;
-  doc.text(`Generated: ${new Date().toLocaleDateString()}`, margin, yPosition);
+  
+  const dateText = `Generated: ${new Date().toLocaleDateString()}`;
+  setAppropriateFont(doc, dateText);
+  doc.text(dateText, margin, yPosition);
   yPosition += 15;
   
   // ===================================
@@ -148,7 +316,14 @@ function writeWrapped(text, x, maxWidth, fontSize, colorRGB, style = 'normal', e
       getScoreStatus(metric, parseInt(score, 10))
     ]),
     margin: { left: margin, right: margin },
-    headStyles: { fillColor: [124, 58, 237] },
+    headStyles: { 
+      fillColor: [124, 58, 237],
+      font: koreanFontLoaded ? 'NotoSansKR' : 'helvetica',
+      fontStyle: 'bold'
+    },
+    bodyStyles: {
+      font: koreanFontLoaded ? 'NotoSansKR' : 'helvetica'
+    },
     alternateRowStyles: { fillColor: [249, 250, 251] },
     styles: { fontSize: 11 }
   });
@@ -175,15 +350,16 @@ function writeWrapped(text, x, maxWidth, fontSize, colorRGB, style = 'normal', e
       // Fix title
       doc.setTextColor('#000000');
       doc.setFontSize(12);
-      doc.setFont('helvetica', 'bold');
+      setAppropriateFont(doc, fix.title, 'bold');
       doc.text(fix.title, margin + 15, yPosition);
       yPosition += 7;
       
       // Fix example
       doc.setFontSize(10);
-      doc.setFont('helvetica', 'italic');
+      setAppropriateFont(doc, fix.example, 'normal');
       doc.setTextColor('#666666');
-      const exampleLines = doc.splitTextToSize(`Example: ${fix.example}`, contentWidth - 15);
+      const exampleText = `Example: ${fix.example}`;
+      const exampleLines = splitText(doc, exampleText, contentWidth - 15);
       exampleLines.forEach(line => {
         checkPageBreak();
         doc.text(line, margin + 15, yPosition);
@@ -218,6 +394,10 @@ function writeWrapped(text, x, maxWidth, fontSize, colorRGB, style = 'normal', e
     const boxY = yPosition;
     doc.setFillColor(249, 250, 251); // 연한 회색
     doc.rect(margin, boxY, contentWidth, boxHeight, 'F');
+
+    doc.setFontSize(10);
+    setAppropriateFont(doc, full.cover_letter_full);
+    doc.setTextColor('#000000');
   
     // 5) 텍스트 출력
     yPosition = boxY + paddingTop;
@@ -257,13 +437,15 @@ function writeWrapped(text, x, maxWidth, fontSize, colorRGB, style = 'normal', e
   
       // Original label
       doc.setFontSize(9);
-      doc.setFont('helvetica', 'normal');
+      setAppropriateFont(doc, 'Original:');
       doc.setTextColor('#999999');
       doc.text('Original:', margin, yPosition);
       yPosition += labelGap;
+
   
       // Original lines
       doc.setFontSize(10);
+      setAppropriateFont(doc, bullet.original);
       doc.setTextColor('#666666');
       origLines.forEach((line) => {
         checkPageBreak(lineH);
@@ -275,14 +457,14 @@ function writeWrapped(text, x, maxWidth, fontSize, colorRGB, style = 'normal', e
   
       // Improved label
       doc.setFontSize(9);
-      doc.setFont('helvetica', 'bold');
+      setAppropriateFont(doc, '✓ Improved:');
       doc.setTextColor('#10b981');
       doc.text('✓ Improved:', margin, yPosition);
       yPosition += labelGap;
   
       // Improved lines
       doc.setFontSize(11);
-      doc.setFont('helvetica', 'bold');
+      setAppropriateFont(doc, bullet.rewritten, 'bold');
       doc.setTextColor('#000000');
       improvedLines.forEach((line) => {
         checkPageBreak(lineH);
@@ -307,7 +489,7 @@ function writeWrapped(text, x, maxWidth, fontSize, colorRGB, style = 'normal', e
       
       // Question
       doc.setFontSize(11);
-      doc.setFont('helvetica', 'bold');
+      setAppropriateFont(doc, qa.question, 'bold');
       doc.setTextColor('#7c3aed');
       const qLines = doc.splitTextToSize(`Q${index + 1}: ${qa.question}`, contentWidth - 5);
       qLines.forEach(line => {
@@ -320,7 +502,7 @@ function writeWrapped(text, x, maxWidth, fontSize, colorRGB, style = 'normal', e
       
       // Answer
       doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
+      setAppropriateFont(doc, qa.answer);
       doc.setTextColor('#000000');
       const aLines = doc.splitTextToSize(`A: ${qa.answer}`, contentWidth - 5);
       aLines.forEach(line => {
@@ -343,17 +525,17 @@ function writeWrapped(text, x, maxWidth, fontSize, colorRGB, style = 'normal', e
     // Strong Matches
     if (full.strong_matches && full.strong_matches.length > 0) {
       doc.setFontSize(12);
-      doc.setFont('helvetica', 'bold');
+      setAppropriateFont(doc, '✓ Your Strengths', 'bold');
       doc.setTextColor('#10b981');
       doc.text('✓ Your Strengths', margin, yPosition);
       yPosition += 7;
       
       doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
       doc.setTextColor('#000000');
       
       full.strong_matches.forEach(item => {
         checkPageBreak();
+        setAppropriateFont(doc, item);
         doc.text('• ' + item, margin + 5, yPosition);
         yPosition += 6;
       });
@@ -365,17 +547,17 @@ function writeWrapped(text, x, maxWidth, fontSize, colorRGB, style = 'normal', e
     if (full.missing_skills && full.missing_skills.length > 0) {
       checkPageBreak(15);
       doc.setFontSize(12);
-      doc.setFont('helvetica', 'bold');
+      setAppropriateFont(doc, '! Areas to Address', 'bold');
       doc.setTextColor('#f97316');
       doc.text('! Areas to Address', margin, yPosition);
       yPosition += 7;
       
       doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
       doc.setTextColor('#000000');
       
       full.missing_skills.forEach(item => {
         checkPageBreak();
+        setAppropriateFont(doc, item);
         doc.text('• ' + item, margin + 5, yPosition);
         yPosition += 6;
       });
@@ -387,17 +569,17 @@ function writeWrapped(text, x, maxWidth, fontSize, colorRGB, style = 'normal', e
     if (full.action_plan && full.action_plan.length > 0) {
       checkPageBreak(15);
       doc.setFontSize(12);
-      doc.setFont('helvetica', 'bold');
+      setAppropriateFont(doc, '⚡ Recommended Actions', 'bold');
       doc.setTextColor('#7c3aed');
       doc.text('⚡ Recommended Actions', margin, yPosition);
       yPosition += 7;
       
       doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
       doc.setTextColor('#000000');
       
       full.action_plan.forEach((item, i) => {
         checkPageBreak();
+        setAppropriateFont(doc, item);
         doc.text(`${i + 1}. ${item}`, margin + 5, yPosition);
         yPosition += 6;
       });
@@ -421,7 +603,7 @@ function writeWrapped(text, x, maxWidth, fontSize, colorRGB, style = 'normal', e
   }
   
   // Save PDF
-  console.log('Saving PDF...');
+
   const filename = `${sanitizeFilename(analysis.jd_title || 'analysis')}_${Date.now()}.pdf`;
   doc.save(filename);
 };
@@ -441,19 +623,19 @@ export const exportCoverLetterPDF = (analysis, coverLetter) => {
   
   // Header
   doc.setFontSize(20);
-  doc.setFont('helvetica', 'bold');
+  setAppropriateFont(doc, 'Cover Letter', 'bold');
   doc.setTextColor('#7c3aed');
   doc.text('Cover Letter', margin, yPosition);
   yPosition += 15;
-  
-  doc.setFontSize(14);
-  doc.setFont('helvetica', 'bold');
+
+  doc.setFontSize(18);
+  setAppropriateFont(doc, analysis.jd_title || 'Job Position', 'bold');
   doc.setTextColor('#000000');
   doc.text(analysis.jd_title || 'Job Position', margin, yPosition);
   yPosition += 8;
   
-  doc.setFontSize(11);
-  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(12);
+  setAppropriateFont(doc, analysis.jd_company || 'Company Name');
   doc.setTextColor('#666666');
   doc.text(analysis.jd_company || 'Company Name', margin, yPosition);
   yPosition += 15;
@@ -619,3 +801,4 @@ export default {
   exportCoverLetterPDF,
   exportInterviewQAPDF
 };
+

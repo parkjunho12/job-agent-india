@@ -41,7 +41,7 @@ function UnlockPremiumCard({ premium, jobId }) {
   // Determine if this is per-job unlock
   const isPerJobUnlock = premium.upgrade_url && premium.upgrade_url.includes('unlock')
   const price = premium.price || 2.99
-  const currency = premium.currency || 'GBP'
+  const currency = premium.currency || 'USD'
 
   return (
     <div className="bg-gradient-to-br from-primary-50 to-primary-100 border-4 border-primary-500 rounded-2xl p-8 shadow-xl">
@@ -213,7 +213,7 @@ function UnlockPremiumCard({ premium, jobId }) {
       {isPerJobUnlock && (
         <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
           <p className="text-sm text-gray-700 text-center">
-            💡 <strong>Analyzing multiple jobs?</strong> Get unlimited premium for £9.99/month
+            💡 <strong>Analyzing multiple jobs?</strong> Get unlimited premium for $9.99/month
           </p>
           <button 
             onClick={() => window.location.href = '/billing'}

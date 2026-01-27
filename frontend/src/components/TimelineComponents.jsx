@@ -109,7 +109,7 @@ function TimelineChart({ data }) {
                 <div className="relative">
                   <div className="bg-success-500 rounded-t hover:bg-success-600 transition-colors cursor-pointer" style={{ height: `${height}px` }} />
                   <div className="hidden group-hover:block absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap">
-                    £{(day.revenue || 0).toFixed(2)}
+                    ${(day.revenue || 0).toFixed(2)}
                     <div className="text-xs text-gray-400">{day.date}</div>
                   </div>
                 </div>
@@ -148,7 +148,7 @@ function DayRow({ day }) {
             </div>
             <div className="flex items-center gap-2">
               <DollarSign className="w-4 h-4 text-success-600" />
-              <span className="text-sm font-medium text-gray-900">£{(day.revenue || 0).toFixed(2)}</span>
+              <span className="text-sm font-medium text-gray-900">${(day.revenue || 0).toFixed(2)}</span>
             </div>
           </div>
         </div>
@@ -314,11 +314,11 @@ export function DeepInsights({ metrics, funnel, timeline, advancedMetrics }) {
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600">Revenue per User</span>
-              <span className="text-lg font-bold text-gray-900">£{revenueMetrics.revenue_per_user?.toFixed(2) || '0.00'}</span>
+              <span className="text-lg font-bold text-gray-900">${revenueMetrics.revenue_per_user?.toFixed(2) || '0.00'}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600">Lifetime Value (LTV)</span>
-              <span className="text-lg font-bold text-gray-900">£{revenueMetrics.ltv?.toFixed(2) || '0.00'}</span>
+              <span className="text-lg font-bold text-gray-900">${revenueMetrics.ltv?.toFixed(2) || '0.00'}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600">Growth Rate</span>

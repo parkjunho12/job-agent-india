@@ -242,7 +242,7 @@ function UserRow({ user }) {
       {/* Revenue */}
       <td className="px-6 py-4">
         <p className="text-gray-900 font-semibold">
-          £{(user.total_revenue || 0).toFixed(2)}
+          ${(user.total_revenue || 0).toFixed(2)}
         </p>
       </td>
 
