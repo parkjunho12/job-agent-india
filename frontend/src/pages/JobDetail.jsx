@@ -555,7 +555,7 @@ function JobDetail() {
 {!isEditing && (
   <div className="mb-6 space-y-4">
     {/* PRIMARY CTA: Analyze & Generate */}
-    <button
+    {/* <button
       onClick={() => navigate(`/jobs/${id}/analysis`)}
       className="card hover:shadow-lg w-full transition-all border-2 border-primary-300 bg-primary-50"
     >
@@ -579,7 +579,7 @@ function JobDetail() {
           </span>
         </div>
       </div>
-    </button>
+    </button> */}
 
     {/* Secondary actions */}
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

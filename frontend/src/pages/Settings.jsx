@@ -375,7 +375,7 @@ function Settings() {
                 )}
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {(currentPlan === 'free' || currentPlan === 'pay_per_job') && (
+                  {/* {(currentPlan === 'free' || currentPlan === 'pay_per_job') && (
                     <button
                       className="btn btn-secondary flex items-center justify-center gap-2"
                       disabled={buyCreditMutation.isPending}
@@ -390,7 +390,7 @@ function Settings() {
                         </>
                       )}
                     </button>
-                  )}
+                  )} */}
 
                   {currentPlan !== 'pro' && (
                     <button

@@ -24,6 +24,7 @@ import {
     exportCoverLetterPDF, 
     exportInterviewQAPDF 
   } from '../utils/pdfExport';
+import analytics from '../services/analytics';
 
 /**
  * Analysis Detail 화면
@@ -204,6 +205,8 @@ export default function AnalysisDetail() {
     const guardKey = `unlock_finalized_${analysisId}_${tx}`;
     if (sessionStorage.getItem(guardKey) === '1') return;
     sessionStorage.setItem(guardKey, '1');
+
+    analytics.trackUnlockPremium(analysisId);
   
     unlockMutation.mutate({ analysisId, transactionId: tx });
   }, [analysisId, searchParams]);

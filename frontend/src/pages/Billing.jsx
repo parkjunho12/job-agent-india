@@ -257,7 +257,7 @@ function Billing() {
         )}
         
         <div className="flex flex-wrap gap-3">
-          {(currentPlan === 'free' || currentPlan === 'pay_per_job') && (
+          {/* {(currentPlan === 'free' || currentPlan === 'pay_per_job') && (
             <button
               onClick={() => buyCreditMutation.mutate(1)}
               disabled={buyCreditMutation.isPending}
@@ -272,7 +272,7 @@ function Billing() {
                 </>
               )}
             </button>
-          )}
+          )} */}
           
           {currentPlan === 'free' && (
             <button

@@ -66,7 +66,7 @@ export default function CVSelector({ selectedCVs, onSelect, cvSetName, onSetName
       onSelect(selectedCVs.filter(item => item.resume_id !== cv.id));
     } else {
       // Add
-      console.log('Adding CV:', cv);
+      
       onSelect([...selectedCVs, { resume_id: cv.id, name: cv.title }]);
     }
   };

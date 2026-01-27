@@ -138,6 +138,7 @@ class AnalysisEngine:
                 "required_experience": job.required_experience,
                 "salary_range": job.salary_range,
                 "custom_questions": job.custom_questions or []
+               
             }
             
         else:
@@ -152,7 +153,8 @@ class AnalysisEngine:
                 "required_skills": [],
                 "preferred_skills": [],
                 "required_experience": None,
-                "salary_range": None
+                "salary_range": None,
+                "custom_questions": []
             }
         
         return jd_text, jd_metadata

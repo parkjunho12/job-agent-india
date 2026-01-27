@@ -4,7 +4,8 @@ import { Loader2, Zap, CheckCircle, AlertCircle } from 'lucide-react';
 import JDSelector from '../components/JDSelector';
 import CVSelector from '../components/CVSelector';
 import { useNavigate } from 'react-router-dom';
-import { analysisApi } from '../services/api';
+import { analysisApi, jobsApi } from '../services/api';
+import analytics from '../services/analytics'
 
 /**
  * New Analysis 화면
@@ -28,11 +29,41 @@ export default function NewAnalysis({ onComplete }) {
   const [selectedCVs, setSelectedCVs] = useState([]);
   const [cvSetName, setCvSetName] = useState('');
   const [analysisResult, setAnalysisResult] = useState(null);
+
+  const createManualAnalysisMutation = useMutation({
+    mutationFn: async (data) => {
+
+        const payload = {
+            title: selectedJD.title,
+            company: selectedJD.company,
+            location:  null,
+            url:  "",
+            description: selectedJD.description || "",
+            required_skills:  [],
+            required_experience: null,
+            salary_range: null,
+            job_type: null,
+            portal_type: 'manual',
+            status: 'saved'
+          }
+          
+          const response = await jobsApi.create(payload)
+          analytics.trackJobAdded(response.data.id)
+
+          createAnalysisMutation.mutate(data);
+    },
+    onSuccess: (analysis) => {
+
+    },
+    onError: (error) => {
+        console.error('Failed to create manual job description:', error);
+        }
+  })
   
   // Create analysis mutation
   const createAnalysisMutation = useMutation({
     mutationFn: async (data) => {
-
+    
       const analysis = await analysisApi.createAnalysis(data);
       
       console.log('Created analysis:', analysis);
@@ -43,6 +74,8 @@ export default function NewAnalysis({ onComplete }) {
       
       // Invalidate queries
       queryClient.invalidateQueries(['analyses']);
+
+      analytics.trackAnalysis(analysis.id, analysis.can_view_full);
       
       // Check if already done (synchronous API)
       if (analysis.status === 'done' && analysis.preview_payload) {
@@ -55,6 +88,7 @@ export default function NewAnalysis({ onComplete }) {
           preview: analysis.preview_payload
         });
         
+
         // Redirect to detail after 2 seconds
         setTimeout(() => {
           navigate(`/analysis-history/${analysis.id}`);
@@ -82,13 +116,14 @@ export default function NewAnalysis({ onComplete }) {
       return response;
     },
     onSuccess: (data) => {
-      console.log('Analysis completed:', data);
       
       setAnalysisResult(data);
       
       // Invalidate queries
       queryClient.invalidateQueries(['analyses']);
       queryClient.invalidateQueries(['analysis', data.analysis_id]);
+
+        console.log(data);
       
       // ✅ FIX: Redirect to detail view, not history
       setTimeout(() => {
@@ -171,8 +206,7 @@ export default function NewAnalysis({ onComplete }) {
         data.resume_ids = savedIds;
       }
     }
-    
-    console.log('Submitting analysis data:', data);
+    analytics.trackCTAClick('Analyze')
     createAnalysisMutation.mutate(data);
   };
   

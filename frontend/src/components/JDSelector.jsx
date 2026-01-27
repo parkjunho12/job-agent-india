@@ -90,6 +90,8 @@ export default function JDSelector({ selectedJD, onSelect }) {
       company: 'Manual Entry',
       custom_questions: []
     });
+
+    console.log('Selected manual JD:', manualJD);
   };
   
   const isJobSelected = (job) => {

@@ -512,6 +512,7 @@ async def create_analysis(
         status=AnalysisStatus.QUEUED,
         access_mode=access_mode
     )
+    usage_service.record_analysis(current_user.id)
     
     db.add(analysis)
     db.commit()
@@ -522,6 +523,7 @@ async def create_analysis(
     
     try:
         result = await engine.run_analysis(analysis, current_user)
+        
         
         # Refresh to get updated data
         db.refresh(analysis)

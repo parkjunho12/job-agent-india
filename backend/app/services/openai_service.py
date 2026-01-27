@@ -12,6 +12,7 @@ New additions:
 
 from typing import Dict, Any, List, Optional
 import json
+import re
 import logging
 from openai import AsyncOpenAI, OpenAIError, RateLimitError
 from app.models.user import User
@@ -709,6 +710,33 @@ Best regards"""
         except Exception as e:
             logger.error(f"Error optimizing for ATS: {e}")
             raise
+
+    def parse_matches(self, raw):
+        if raw is None:
+            return []
+
+        # 1) strip + BOM 제거
+        s = raw.strip().lstrip("\ufeff")
+
+        # 2) 제어문자 제거(탭/개행은 남김)
+        s = re.sub(r"[\x00-\x08\x0B\x0C\x0E-\x1F]", "", s)
+
+        # 3) 코드블록 제거
+        if s.startswith("```"):
+            s = re.sub(r"^```(?:json)?\s*", "", s, flags=re.IGNORECASE)
+            s = re.sub(r"\s*```$", "", s)
+
+        # 4) JSON 객체만 추출
+        m = re.search(r"\{[\s\S]*\}", s)
+        if not m:
+            raise ValueError(f"No JSON object found. Head={repr(s[:120])}")
+
+        json_str = m.group(0)
+
+        # 5) 파싱
+        obj = json.loads(json_str)
+        return obj.get("matches", [])
+
     
     async def match_experiences(
         self, 
@@ -727,6 +755,7 @@ Best regards"""
         """
         
         prompt = self._build_matching_prompt(job_requirements, experiences)
+        
         
         system_prompt = """You are an expert at matching candidate experience to job requirements.
             Analyze each experience and score its relevance (0-1) based on:
@@ -747,11 +776,12 @@ Best regards"""
                     {"role": "user", "content": prompt}
                 ]
             )
-            
+
             content = response.choices[0].message.content
             result = json.loads(content)
+            matches = result["matches"]
             
-            matches = result.get("matches", [])
+           
             return matches
             
         except Exception as e:
@@ -999,28 +1029,49 @@ Best regards"""
         """.strip()
     
     def _build_matching_prompt(
-        self, 
+        self,
         job_requirements: Dict[str, Any],
         experiences: List[Dict[str, Any]]
     ) -> str:
-        """Build matching prompt"""
-        
         exp_text = "\n\n".join([
-            f"Experience {exp['id']}:\n" +
-            f"Title: {exp['title']}\n" +
+            f"Experience {exp['id']}:\n"
+            f"Title: {exp['title']}\n"
             f"Skills: {', '.join(exp.get('skills_used', []))}"
             for exp in experiences
         ])
-        
-        return f"""Match experiences to job requirements.
-        
-        Required Skills: {', '.join(job_requirements.get('required_skills', []))}
-        
+
+        return f"""
+        You are an expert recruiter.
+
+        Match EACH experience to the job requirements.
+
+        Job:
+        - Title: {job_requirements['title']}
+        - Required Skills: {', '.join(job_requirements.get('required_skills', []))}
+        - Preferred Skills: {', '.join(job_requirements.get('preferred_skills', []))}
+        - Key Responsibilities: {', '.join(job_requirements.get('key_responsibilities', []))}
+
+        Scoring rules:
+        - relevance_score is between 0.0 and 1.0
+        - 1.0 = strong direct match; 0.0 = no match
+
         Experiences:
         {exp_text}
-        
-        Return JSON with matches.
+
+        Return ONLY valid JSON (no markdown, no extra text) with EXACT keys:
+
+        {{
+        "matches": [
+            {{
+            "experience_id": <integer>,
+            "relevance_score": <float>,
+            "matching_skills": <list of strings>,
+            "relevant_achievements": <list of strings>
+            }}
+        ]
+        }}
         """
+
     
     def _format_work_history(self, work_history: List[Dict[str, Any]]) -> str:
         """Format work history"""
