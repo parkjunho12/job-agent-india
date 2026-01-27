@@ -84,6 +84,7 @@ class User(Base):
     experiences = relationship("Experience", back_populates="user", cascade="all, delete-orphan")
     jobs = relationship("Job", back_populates="user", cascade="all, delete-orphan")
     applications = relationship("Application", back_populates="user", cascade="all, delete-orphan")
+    analyses = relationship("Analysis", back_populates="user")
     
     # Billing (NEW)
     subscription = relationship(

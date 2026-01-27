@@ -13,6 +13,15 @@ from datetime import datetime, timedelta, timezone
 from app.db.database import get_db
 from app.models.user import User
 from app.models.job import Job
+from app.models.analysis import (
+    Analysis,
+    AnalysisCreate,
+    AnalysisUpdate,
+    AnalysisResponse,
+    AnalysisSummary,
+    AnalysisStatus,
+    AccessMode
+)
 from app.models.billing import (
     Subscription, Transaction, UsageCounter,
     SubscriptionResponse, UsageResponse, 
@@ -34,6 +43,10 @@ router = APIRouter()
 
 class UnlockJobRequest(BaseModel):
     job_id: int
+    
+class UnlockAnalysisRequest(BaseModel):
+    analysis_id: int
+    transactionId: str = ""
 
 # ============================================
 # Plans & Pricing
@@ -568,6 +581,86 @@ async def unlock_job_premium(
             "checkout_url": session.url,
             "session_id": session.id,
             "credits": quantity
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to create checkout: {str(e)}"
+        )
+
+
+@router.post("/unlock-analysis")
+async def unlock_analysis(
+    request: UnlockAnalysisRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Unlock premium features for a specific job
+    One-time payment of £2.99
+    
+    This allows users to buy premium analysis per-job
+    without subscribing to a plan
+    """
+    
+    # Get Analysis
+    analysis = db.query(Analysis).filter(
+        Analysis.id == request.analysis_id,
+        Analysis.user_id == current_user.id
+    ).first()
+    
+    if not analysis:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Analysis not found"
+        )
+    
+    # Check if already unlocked
+    if analysis.is_unlocked:
+        return {
+            "message": "Analysis premium already unlocked",
+            "analysis_id": analysis.id,
+            "unlocked_at": analysis.unlocked_at
+        }
+    
+    # Get or create subscription (for Stripe customer)
+    usage_service = UsageService(db)
+    subscription = usage_service.get_or_create_subscription(current_user.id)
+    
+    # Create Stripe customer if not exists
+    if not subscription.stripe_customer_id:
+        customer = stripe_service.create_customer(
+            email=current_user.email,
+            name=current_user.full_name,
+            user_id=current_user.id
+        )
+        subscription.stripe_customer_id = customer.id
+        db.commit()
+    
+    # Create Stripe checkout session
+    frontend_url = settings.FRONTEND_URL or "https://jobagent-career.com"
+    success_url = f"{frontend_url}/analysis-history/{analysis.id}?unlock_success=true"
+    cancel_url = f"{frontend_url}/analysis-history/{analysis.id}?unlock_cancelled=true"
+    
+    try:
+        # (권장) idempotency key: 같은 유저가 같은 수량으로 연타해도 세션이 폭증하지 않게
+        idem_key = f"buy_credit:{current_user.id}:{request.transactionId}"
+        
+        session = stripe_service.create_checkout_session_credits(
+            customer_id=subscription.stripe_customer_id,
+            success_url=success_url,
+            cancel_url=cancel_url,
+            price_id=settings.STRIPE_CREDIT_PRICE_ID,
+            quantity=1,
+            user_id=current_user.id,
+            idempotency_key=idem_key,
+        )
+        
+        return {
+            "checkout_url": session.url,
+            "session_id": session.id,
+            "credits": 1,
+            "transactionId": request.transactionId
         }
     except Exception as e:
         raise HTTPException(

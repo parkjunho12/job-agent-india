@@ -271,10 +271,8 @@ async def get_user_details(
             {
                 'id': j.id,
                 'company': j.company,
-                'position': j.position,
+                'title': j.title,
                 'status': j.status,
-                'is_analyzed': j.is_analyzed,
-                'is_premium_unlocked': j.is_premium_unlocked,
                 'created_at': j.created_at.isoformat()
             }
             for j in jobs

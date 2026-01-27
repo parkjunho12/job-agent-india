@@ -32,10 +32,11 @@ function Layout() {
   
   const navItems = [
     { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+    { name: 'Experiences', path: '/experiences', icon: User },
     { name: 'Jobs', path: '/jobs', icon: Briefcase },
+    { name: 'Analyses', path: '/analysis-history', icon: Sparkles },
     { name: 'Stats', path: '/stats', icon: ChartColumnStacked },
     { name: 'Applications', path: '/applications', icon: FileText },
-    { name: 'Experiences', path: '/experiences', icon: User },
     { name: 'Billing', path: '/billing', icon: CreditCard },
     { name: 'Settings', path: '/settings', icon: Settings },
   ]

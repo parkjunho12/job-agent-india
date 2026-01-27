@@ -29,6 +29,10 @@ import TermsOfService from './pages/TermsOfService'
 import PrivacyPolicy from './pages/PrivacyPolicy'
 import AdminDashboard from './pages/AdminDashboard'
 import AdminUsers from './pages/AdminUsers'
+import Landing2 from './pages/Landing2'
+import AnalysisHistory from './pages/Analysishistory'
+import AnalysisDetail from './pages/AnalysisDetail'
+import NewAnalysis from './pages/NewAnalysis'
 
 
 // Components
@@ -69,7 +73,7 @@ function App() {
       <Router>
         <Routes>
           {/* Public Routes */}
-          <Route path="/" element={isAuthenticated ? <Navigate to="/dashboard" /> : <Login />} />
+          <Route path="/" element={isAuthenticated ? <Navigate to="/dashboard" /> : <Landing2 />} />
           <Route path="/landing" element={isAuthenticated ? <Navigate to="/dashboard" /> : <Landing />} />
           <Route path="/login" element={isAuthenticated ? <Navigate to="/dashboard" /> : <Login />} />
           <Route path="/register" element={isAuthenticated ? <Navigate to="/dashboard" /> : <Register />} />
@@ -104,6 +108,9 @@ function App() {
             <Route path="/billing/success" element={<BillingSuccess />} />
             <Route path="/jobs/:jobId/analysis" element={<JobAnalysis />} />
             <Route path="/stats" element={<Stats />} />
+            <Route path="/analysis-history" element={<AnalysisHistory />} />
+            <Route path="/analysis-history/:analysisId" element={<AnalysisDetail />} />
+            <Route path="/new-analysis" element={<NewAnalysis />} />
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/admin/users" element={<AdminUsers />} />
           </Route>

@@ -352,6 +352,11 @@ export const billingApi = {
   // Get payment history
   getTransactions: (limit = 20) => 
     api.get('/billing/transactions', { params: { limit } }),
+
+  unlockAnalysis: (analysisId) =>{
+    const request_id = crypto.randomUUID()
+    return api.post(`/billing/unlock-analysis`, { analysis_id: analysisId, transactionId: request_id })
+  },
 }
 
 
@@ -386,6 +391,66 @@ export const analysisApi = {
    */
   getDecisionStats: () =>
     api.get('/analysis/stats/decisions').then(res => res.data),
-}
+
+  createAnalysis: (data) =>
+    api.post('/analysis', data).then(res => res.data),
+
+  /**
+   * List analysis history
+   * GET /api/v1/analysis?skip=0&limit=50&status=done&unlocked_only=false
+   */
+  listAnalyses: (params = {}) =>
+    api.get('/analysis', { params }).then(res => res.data),
+
+  /**
+   * Get analysis detail
+   * GET /api/v1/analysis/{analysis_id}
+   * 
+   * Returns preview + full (if unlocked)
+   */
+  getAnalysis: (analysisId) =>
+    api.get(`/analysis/${analysisId}`).then(res => res.data),
+
+  /**
+   * Run analysis (main endpoint)
+   * POST /api/v1/analysis/{analysis_id}/analyze
+   * 
+   * Executes AI analysis, returns preview + full (if unlocked)
+   */
+  runAnalysis: (analysisId) =>
+    api.post(`/analysis/${analysisId}/analyze-sync`).then(res => res.data),
+
+  /**
+   * Unlock analysis (after payment)
+   * POST /api/v1/analysis/{analysis_id}/unlock
+   * 
+   * Body: { transaction_id: string }
+   */
+  unlockAnalysis: (analysisId, transactionId) =>
+    api.post(`/analysis/${analysisId}/unlock`, {
+      transaction_id: transactionId
+    }).then(res => res.data),
+
+  /**
+   * Delete analysis
+   * DELETE /api/v1/analysis/{analysis_id}
+   */
+  deleteAnalysis: (analysisId) =>
+    api.delete(`/analysis/${analysisId}`).then(res => res.data),
+
+  /**
+   * Get analysis status (for polling)
+   * GET /api/v1/analysis/{analysis_id}/status
+   */
+  getAnalysisStatus: (analysisId) =>
+    api.get(`/analysis/${analysisId}/status`).then(res => res.data),
+
+  /**
+   * Regenerate full content (for unlocked analyses)
+   * POST /api/v1/analysis/{analysis_id}/regenerate-full
+   */
+  regenerateFullContent: (analysisId) =>
+    api.post(`/analysis/${analysisId}/regenerate-full`).then(res => res.data),
+  }
 
 export default api

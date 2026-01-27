@@ -187,6 +187,7 @@ class JobSummary(BaseModel):
     status: str
     created_at: datetime
     deadline: Optional[datetime]
+    custom_questions: List[Dict[str, str]]
     
     class Config:
         from_attributes = True
