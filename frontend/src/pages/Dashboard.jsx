@@ -12,6 +12,11 @@ import WelcomeModal from '../components/WelcomeModal';
 import CVSetupWizard from '../components/CVSetupWizards';
 import OnboardingChecklist from '../components/OnboardingChecklist';
 
+import MatchScoreTimeline from '../components/MatchScoreTimeline';
+import WeeklyReportCard from '../components/WeeklyReportCard';
+import BadgeDisplay from '../components/BadgeDisplay';
+import StreakTracker from '../components/StreakTracker';
+
 /**
  * Dashboard - Analysis-First Version
  * 
@@ -478,150 +483,6 @@ function Dashboard() {
         <OnboardingChecklist />
         
         {/* ===================================
-            INSIGHTS
-            =================================== */}
-        {insights.length > 0 && (
-          <div className="mb-6 space-y-3">
-            {insights.map((insight, index) => {
-              const Icon = insight.icon;
-              const colorClasses = {
-                yellow: 'bg-yellow-50 border-yellow-300 text-yellow-900',
-                blue: 'bg-blue-50 border-blue-300 text-blue-900',
-                purple: 'bg-purple-50 border-purple-300 text-purple-900',
-                green: 'bg-green-50 border-green-300 text-green-900',
-              };
-              
-              return (
-                <div 
-                  key={index}
-                  className={`border-2 rounded-xl p-6 ${colorClasses[insight.color]}`}
-                >
-                  <div className="flex items-start gap-4">
-                    <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${
-                      insight.color === 'yellow' ? 'bg-yellow-100' :
-                      insight.color === 'blue' ? 'bg-blue-100' :
-                      insight.color === 'purple' ? 'bg-purple-100' :
-                      'bg-green-100'
-                    }`}>
-                      <Icon className={`w-6 h-6 ${
-                        insight.color === 'yellow' ? 'text-yellow-600' :
-                        insight.color === 'blue' ? 'text-blue-600' :
-                        insight.color === 'purple' ? 'text-purple-600' :
-                        'text-green-600'
-                      }`} />
-                    </div>
-                    
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-lg font-bold mb-1">
-                        {insight.title}
-                      </h3>
-                      <p className="text-sm opacity-90 mb-3">
-                        {insight.description}
-                      </p>
-                      
-                      {insight.action && (
-                        <button
-                          onClick={insight.action.onClick}
-                          className={`btn btn-sm ${
-                            insight.color === 'yellow' ? 'btn-warning' :
-                            insight.color === 'blue' ? 'btn-primary' :
-                            insight.color === 'purple' ? 'bg-purple-600 text-white hover:bg-purple-700' :
-                            'btn-success'
-                          }`}
-                        >
-                          {insight.action.label}
-                          <ChevronRight className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-        
-        {/* ===================================
-            STATS CARDS (Analysis-focused)
-            =================================== */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
-          {/* Total Jobs */}
-          <Link to="/jobs">
-            <div className="card hover:shadow-lg transition-all hover:scale-105 cursor-pointer">
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                  <Briefcase className="w-6 h-6 text-blue-600" />
-                </div>
-                <span className="text-xs text-gray-500 font-medium uppercase tracking-wide">Saved</span>
-              </div>
-              <h3 className="text-3xl font-bold text-gray-900 mb-1">{stats.totalJobs}</h3>
-              <p className="text-sm text-gray-600">Jobs Saved</p>
-            </div>
-          </Link>
-          
-          {/* Total Analyses */}
-          <Link to="/analysis-history">
-            <div className="card hover:shadow-lg transition-all hover:scale-105 cursor-pointer bg-gradient-to-br from-primary-50 to-purple-50 border-primary-200">
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 bg-primary-100 rounded-xl flex items-center justify-center">
-                  <Target className="w-6 h-6 text-primary-600" />
-                </div>
-                <span className="text-xs text-primary-600 font-medium uppercase tracking-wide">Analyzed</span>
-              </div>
-              <h3 className="text-3xl font-bold text-gray-900 mb-1">{stats.totalAnalyses}</h3>
-              <p className="text-sm text-gray-700">
-                Analyses
-                {stats.averageMatch > 0 && (
-                  <span className="ml-2 text-xs text-primary-600">
-                    • Avg {stats.averageMatch}%
-                  </span>
-                )}
-              </p>
-            </div>
-          </Link>
-          
-          {/* Strong Matches */}
-          <Link to="/analysis-history">
-            <div className="card hover:shadow-lg transition-all hover:scale-105 cursor-pointer bg-gradient-to-br from-green-50 to-emerald-50 border-green-200">
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-                  <CheckCircle className="w-6 h-6 text-green-600" />
-                </div>
-                <span className="text-xs text-green-600 font-medium uppercase tracking-wide">Strong</span>
-              </div>
-              <h3 className="text-3xl font-bold text-gray-900 mb-1">{stats.strongMatches}</h3>
-              <p className="text-sm text-gray-700">
-                Strong Matches
-                {stats.strongMatches > 0 && stats.totalAnalyses > 0 && (
-                  <span className="ml-2 text-xs text-green-600">
-                    • {Math.round((stats.strongMatches / stats.totalAnalyses) * 100)}% of total
-                  </span>
-                )}
-              </p>
-            </div>
-          </Link>
-          
-          {/* Time Saved */}
-          <div className="card hover:shadow-lg transition-all hover:scale-105 cursor-pointer bg-gradient-to-br from-orange-50 to-yellow-50 border-orange-200">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center">
-                <Clock className="w-6 h-6 text-orange-600" />
-              </div>
-              <span className="text-xs text-orange-600 font-medium uppercase tracking-wide">Saved</span>
-            </div>
-            <h3 className="text-3xl font-bold text-gray-900 mb-1">{stats.timeSaved}h</h3>
-            <p className="text-sm text-gray-700">
-              Time Saved
-              {stats.thisWeek > 0 && (
-                <span className="ml-2 text-xs text-orange-600">
-                  • {stats.thisWeek} this week
-                </span>
-              )}
-            </p>
-          </div>
-        </div>
-        
-        {/* ===================================
             QUICK ACTIONS
             =================================== */}
         <div className="mb-8">
@@ -685,6 +546,81 @@ function Dashboard() {
             })}
           </div>
         </div>
+
+        {/* ===================================
+            INSIGHTS
+            =================================== */}
+        {insights.length > 0 && (
+          <div className="mb-6 space-y-3">
+            {insights.map((insight, index) => {
+              const Icon = insight.icon;
+              const colorClasses = {
+                yellow: 'bg-yellow-50 border-yellow-300 text-yellow-900',
+                blue: 'bg-blue-50 border-blue-300 text-blue-900',
+                purple: 'bg-purple-50 border-purple-300 text-purple-900',
+                green: 'bg-green-50 border-green-300 text-green-900',
+              };
+              
+              return (
+                <div 
+                  key={index}
+                  className={`border-2 rounded-xl p-6 ${colorClasses[insight.color]}`}
+                >
+                  <div className="flex items-start gap-4">
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${
+                      insight.color === 'yellow' ? 'bg-yellow-100' :
+                      insight.color === 'blue' ? 'bg-blue-100' :
+                      insight.color === 'purple' ? 'bg-purple-100' :
+                      'bg-green-100'
+                    }`}>
+                      <Icon className={`w-6 h-6 ${
+                        insight.color === 'yellow' ? 'text-yellow-600' :
+                        insight.color === 'blue' ? 'text-blue-600' :
+                        insight.color === 'purple' ? 'text-purple-600' :
+                        'text-green-600'
+                      }`} />
+                    </div>
+                    
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-lg font-bold mb-1">
+                        {insight.title}
+                      </h3>
+                      <p className="text-sm opacity-90 mb-3">
+                        {insight.description}
+                      </p>
+                      
+                      {insight.action && (
+                        <button
+                          onClick={insight.action.onClick}
+                          className={`btn btn-sm ${
+                            insight.color === 'yellow' ? 'btn-warning' :
+                            insight.color === 'blue' ? 'btn-primary' :
+                            insight.color === 'purple' ? 'bg-purple-600 text-white hover:bg-purple-700' :
+                            'btn-success'
+                          }`}
+                        >
+                          {insight.action.label}
+                          <ChevronRight className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+        
+
+
+        <div className="mb-6">
+          <WeeklyReportCard 
+            analyses={analyses}
+            jobs={jobs}
+            applications={applications}
+          />
+        </div>
+        
         
         {/* ===================================
             RECENT ACTIVITY
@@ -776,6 +712,7 @@ function Dashboard() {
                 <ChevronRight className="w-4 h-4" />
               </Link>
             </div>
+
             
             {recentAnalyses.length > 0 ? (
               <div className="space-y-2">
@@ -824,6 +761,19 @@ function Dashboard() {
               </div>
             )}
           </div>
+        </div>
+          
+        <div className="mb-6">
+          <MatchScoreTimeline analyses={analyses} />
+        </div>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <BadgeDisplay 
+            analyses={analyses}
+            applications={applications}
+          />
+          
+          <StreakTracker analyses={analyses} />
         </div>
       </div>
     </>

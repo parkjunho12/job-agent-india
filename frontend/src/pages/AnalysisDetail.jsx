@@ -474,11 +474,17 @@ export default function AnalysisDetail() {
       
           <div className="prose prose-sm max-w-none">
             {/* 1) FREE로 보여줄 문장들 */}
+            <h6 className="text-gray-700 italic mb-4">
+            Dear Hiring Manager,
+            </h6>
             {preview.cover_letter_preview.visible_sentences?.map((sentence, i) => (
-              <p key={`v-${i}`} className="mb-2">
-                {sentence}
-              </p>
-            ))}
+                <span
+                    key={`v-${i}`}
+                    className={`block ${i === 0 ? 'mb-1' : 'mb-1'}`}
+                >
+                    {sentence}
+                </span>
+                ))}
       
             {/* 2) 잠금이면 “이어지는 본문”을 블러 처리 + 클릭 유도 */}
             {!isUnlocked && (
