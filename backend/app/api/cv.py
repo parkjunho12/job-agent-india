@@ -20,7 +20,6 @@ from app.services.openai_service import OpenAIService
 
 router = APIRouter(prefix="/api/v1/cv", tags=["cv"])
 
-
 @router.post("/upload")
 async def upload_cv(
     file: UploadFile = File(...),
