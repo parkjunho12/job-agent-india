@@ -23,7 +23,7 @@ class StripeService:
     PRICE_IDS = {
         "basic_monthly": settings.STRIPE_PRICE_BASIC_MONTHLY,
         "pro_monthly": settings.STRIPE_PRICE_PRO_MONTHLY,
-        "credit_single": settings.STRIPE_CREDIT_PRICE_ID
+        "unlock-premium": settings.STRIPE_CREDIT_PRICE_ID
         # One-time payments don't need price IDs (created dynamically)
     }
     
