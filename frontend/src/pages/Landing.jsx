@@ -316,7 +316,7 @@ function Landing() {
                   Pay Per Job
                 </h3>
                 <div className="mb-2">
-                  <span className="text-4xl font-bold text-gray-900">$2.99</span>
+                  <span className="text-4xl font-bold text-gray-900">$2</span>
                 </div>
                 <p className="text-sm text-gray-600">per analysis</p>
               </div>

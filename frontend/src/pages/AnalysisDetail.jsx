@@ -623,7 +623,7 @@ export default function AnalysisDetail() {
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-4">
                 <div className="text-center sm:text-left">
                   <div className="text-sm text-gray-500">One-time payment</div>
-                  <div className="text-4xl font-bold text-primary-600">$2.99</div>
+                  <div className="text-4xl font-bold text-primary-600">$2</div>
                 </div>
                 
                 <div className="hidden sm:block h-12 w-px bg-gray-200"></div>

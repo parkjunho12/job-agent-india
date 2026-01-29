@@ -122,7 +122,7 @@ function TermsOfService() {
                     there is a technical error preventing service delivery.
                   </li>
                   <li>
-                    <strong>Per-Job Unlocks:</strong> Premium job unlocks ($2.99) are non-refundable 
+                    <strong>Per-Job Unlocks:</strong> Premium job unlocks ($2) are non-refundable 
                     once the analysis is unlocked and viewed.
                   </li>
                 </ul>

@@ -268,7 +268,7 @@ function Billing() {
               ) : (
                 <>
                   <Zap className="w-4 h-4" />
-                  Buy Credit ($2.99)
+                  Buy Credit ($2)
                 </>
               )}
             </button>

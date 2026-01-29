@@ -92,7 +92,7 @@ async def buy_credit(
 ):
     """
     Buy credits for job analysis
-    $2.99 per credit
+    $2 per credit
     """
     
     if quantity < 1 or quantity > 100:
